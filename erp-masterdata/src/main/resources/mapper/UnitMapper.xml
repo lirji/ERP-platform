@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.masterdata.repository.UnitMapper">
+
+    <insert id="insert">
+        INSERT INTO md_unit (tenant_id, code, name) VALUES (#{tenantId}, #{code}, #{name})
+    </insert>
+
+    <select id="existsEnabled" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM md_unit
+                       WHERE tenant_id = #{tenantId} AND id = #{id} AND enabled = TRUE)
+    </select>
+
+    <select id="findName" resultType="java.lang.String">
+        SELECT name FROM md_unit WHERE tenant_id = #{tenantId} AND id = #{id}
+    </select>
+
+    <update id="setEnabled">
+        UPDATE md_unit SET enabled = #{enabled} WHERE tenant_id = #{tenantId} AND id = #{id}
+    </update>
+
+</mapper>

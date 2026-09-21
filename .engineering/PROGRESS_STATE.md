@@ -9,10 +9,23 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P1 Platform Kernel 已完成**（GATE-P1-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P2 Master Data |
-| 分支 | `feat/p1-platform-kernel` → `main`，已推送 `origin/main` |
+| 当前 Phase | **P2 Master Data 已完成**（GATE-P2-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P3 Inventory Core |
+| 分支 | `feat/p2-master-data` → `main`，已推送 `origin/main` |
 | Driver | `claude-code-local`，probed `health: READY` |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
+
+## P2 出口条件实测结果（GATE-P2-20260921）
+
+| # | 条件 | 结果 |
+|---|---|---|
+| ① | 编码租户内唯一（50 线程并发只成功一条） | PASS |
+| ② | 停用只切断新引用，已有单据不受影响 | PASS |
+| ③ | 改名后历史单据显示快照值 | PASS |
+| ④ | 被引用后关键字段（编码、基本单位）锁定 | PASS |
+| ⑤ | 批量导入 1000 行，失败整批回滚 | PASS |
+
+`mvn clean verify` EXIT 0（连跑两次）· 单元/架构 29 + 集成 40 = **69**
+12 张 md_* 表 / 107 条注释 / 无注释字段数 0
 
 ## P1 出口条件实测结果（GATE-P1-20260921）
 
@@ -59,14 +72,18 @@
 | `SPECIFIED_ORG/COMPANY` | 角色上暂无明细配置表，命中时按 `DEPT_AND_BELOW` 处理，待 P2 补 |
 | `Q-02`/`Q-03` | 库位精度、是否对接 `wms-platform` —— P3 前答复较好 |
 
-## 下一步（P2 Master Data）
+## 下一步（P3 Inventory Core）★ 本项目最关键的一期
 
-依赖 P1（已满足）。能力 CAP-P05、CAP-G02、CAP-G04。
+依赖 P2（已满足）。能力 CAP-C01..C04、CAP-S05。
 可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
 
-P2 出口条件（ROADMAP）中易被糊弄的两条：
-- 停用的主数据不能被**新**单据引用，但**已有单据不受影响**；
-- 修改 SKU 名称后历史单据显示的仍是**快照值**（`MasterDataRef` 机制）。
+不可妥协的三条不变量，必须由**真实数据库**集成测试证明：
+- `INV-01` 随机 1000 次过账后，余额 == 流水代数和；
+- `INV-02` 并发 50 线程扣同一桶，无负库存、无超卖；
+- `INV-04` 同一来源行过账 10 次只有一次效果。
+
+另：`available` **不得有对应数据库字段**（算出来的，不是存出来的），
+由代码审查 + 架构测试保证。
 
 ## 历史：P1 Platform Kernel
 
