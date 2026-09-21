@@ -1,0 +1,3785 @@
+{
+  "protocol": "project-bootstrap-report/v1",
+  "projectSummary": {
+    "name": "erp-platform",
+    "background": "从 0 规划一套面向中小型及中大型企业、多租户多公司多组织多仓库的企业级 ERP；本轮只做规划，不写产品代码。",
+    "stopPoint": "Planner Handoff（用户指定停在 ERP Implementation Plan + Business Capability Map + Bounded Context + Phase/Gate）",
+    "mode": "GREENFIELD_PLANNING",
+    "workspace": "REFERENCE_SYSTEM",
+    "workspaceNote": "ERP 本身无仓库（新建目录）；同 Workspace 下真实读取了 dev-infra / wms-platform / workflow-platform / auth-platform 作为参考系统"
+  },
+  "requirements": {
+    "businessFlows": [
+      "BL-1 采购到付款",
+      "BL-2 订单到收款",
+      "BL-3 库存内部作业",
+      "BL-4 主数据生命周期",
+      "BL-5 组织与权限管理",
+      "BL-6 经营分析"
+    ],
+    "actors": [
+      "采购员",
+      "采购主管",
+      "仓管员",
+      "销售员",
+      "销售主管",
+      "应收会计",
+      "应付会计",
+      "出纳",
+      "财务主管",
+      "系统管理员",
+      "经营者"
+    ],
+    "invariants": [
+      "INV-01 库存余额等于该桶全部流水的代数和",
+      "INV-02 onHand>=0 且 reserved+locked<=onHand",
+      "INV-03 任何余额变化都有且只有一条来源单据行且可双向追溯",
+      "INV-04 同一来源单据行重复过账不产生第二次库存效果",
+      "INV-05 累计收货量<=订单量*(1+超收比例)；累计发货量<=订单量",
+      "INV-06 每张入库或出库单最多生成一张应付或应收",
+      "INV-07 累计核销金额<=单据金额；累计付款<=应付金额",
+      "INV-08 企业维度数量守恒（含在途）",
+      "INV-09 任何查询都带租户与数据范围边界",
+      "INV-10 非法状态迁移被拒绝且留痕；并发迁移只有一个成功"
+    ],
+    "ref": "docs/design/erp-platform/BRIEF.md"
+  },
+  "nonFunctionalRequirements": {
+    "status": "MOSTLY_ASSUMED",
+    "note": "用户未给出任何数值型 SLA；数值项均为 ASSUMED/RECOMMENDED，不得当作需求执行",
+    "items": [
+      {
+        "id": "NFR-01",
+        "dimension": "Performance",
+        "requirement": "单据保存 P95<500ms；列表查询 P95<1s；库存扣减 P99<200ms",
+        "status": "RECOMMENDED"
+      },
+      {
+        "id": "NFR-02",
+        "dimension": "Availability",
+        "requirement": "工作时间 99.5%",
+        "status": "ASSUMED"
+      },
+      {
+        "id": "NFR-03",
+        "dimension": "Scalability",
+        "requirement": "单实例起步；水平扩展前置条件是消除实例本地状态",
+        "status": "RECOMMENDED"
+      },
+      {
+        "id": "NFR-04",
+        "dimension": "Security",
+        "requirement": "服务端强制判权、租户隔离、数据权限查询层施加、脱敏、关键操作审计",
+        "status": "CONFIRMED"
+      },
+      {
+        "id": "NFR-05",
+        "dimension": "Observability",
+        "requirement": "结构化日志+traceId，可关联 tenantId/userId/businessType/businessId/documentNo",
+        "status": "CONFIRMED"
+      },
+      {
+        "id": "NFR-06",
+        "dimension": "Auditability",
+        "requirement": "核心单据创建、状态迁移、金额与数量变更全量留痕",
+        "status": "CONFIRMED"
+      },
+      {
+        "id": "NFR-07",
+        "dimension": "Recoverability",
+        "requirement": "RPO<=15min；RTO<=4h",
+        "status": "ASSUMED",
+        "note": "未做恢复演练，不得声称达标"
+      },
+      {
+        "id": "NFR-08",
+        "dimension": "Consistency",
+        "requirement": "单据过账与库存变动强一致；AR/AP 生成最终一致<=60s",
+        "status": "RECOMMENDED"
+      },
+      {
+        "id": "NFR-09",
+        "dimension": "Maintainability",
+        "requirement": "模块依赖方向由 ArchUnit 强制；跨模块禁止访问对方表",
+        "status": "CONFIRMED"
+      },
+      {
+        "id": "NFR-10",
+        "dimension": "Extensibility",
+        "requirement": "新增业务域不改平台内核",
+        "status": "CONFIRMED"
+      },
+      {
+        "id": "NFR-11",
+        "dimension": "Deployability",
+        "requirement": "docker compose up -d 可启动；只含真实用到的中间件",
+        "status": "CONFIRMED"
+      },
+      {
+        "id": "NFR-12",
+        "dimension": "Testability",
+        "requirement": "七层测试；真实数据库语义用集成测试验证",
+        "status": "CONFIRMED"
+      },
+      {
+        "id": "NFR-13",
+        "dimension": "Operability",
+        "requirement": "慢查询、异常、任务可观测；业务参数不发版可调",
+        "status": "RECOMMENDED"
+      }
+    ],
+    "ref": ".engineering/bootstrap/NFR.md"
+  },
+  "domainModel": {
+    "approach": "Core 上下文用 DDD 战术模式（聚合/实体/值对象/领域服务/领域事件）；Supporting 与 Generic 上下文明确不使用战术模式，用分层与事务脚本",
+    "subdomains": {
+      "core": [
+        "库存账",
+        "采购履约",
+        "销售履约",
+        "往来账与结算"
+      ],
+      "supporting": [
+        "主数据",
+        "审批",
+        "单据链与审计",
+        "报表"
+      ],
+      "generic": [
+        "身份与访问",
+        "编号",
+        "文件/通知"
+      ]
+    },
+    "boundedContexts": [
+      "BC-1 Identity & Access",
+      "BC-2 Master Data",
+      "BC-3 Inventory",
+      "BC-4 Procurement",
+      "BC-5 Sales",
+      "BC-6 Receivables & Payables",
+      "BC-7 Approval",
+      "BC-8 Document & Audit",
+      "BC-9 Reporting"
+    ],
+    "notBoundedContexts": [
+      "erp-kernel（共享内核机制）",
+      "erp-numbering（平台件）"
+    ],
+    "ref": "docs/design/erp-platform/architecture/DOMAIN_MAP.md"
+  },
+  "architecture": {
+    "style": "Modular Monolith + 9 个限界上下文 + 单 PostgreSQL + 局部事件驱动",
+    "deployableUnits": [
+      "erp-app:8500",
+      "erp-console:8501(dev)"
+    ],
+    "modules": [
+      "erp-kernel",
+      "erp-numbering",
+      "erp-iam",
+      "erp-masterdata",
+      "erp-inventory",
+      "erp-procurement",
+      "erp-sales",
+      "erp-finance",
+      "erp-approval",
+      "erp-document",
+      "erp-reporting",
+      "erp-app",
+      "erp-console"
+    ],
+    "keyDecisions": [
+      "DEC-01 模块化单体（9 项驱动因素中 8 项指向它，0 项指向微服务）",
+      "DEC-02 内部风格按上下文选择：Core 六边形，Supporting 分层",
+      "DEC-03 局部事件驱动而非全局 EDA"
+    ],
+    "ref": "docs/design/erp-platform/BACKEND_ARCHITECTURE.md"
+  },
+  "technologyDecisions": [
+    {
+      "decision": "语言/运行时",
+      "selected": "Java 21",
+      "why": "本机 21.0.11 已验证，与 Workspace 全部项目一致",
+      "alternative": "Java 17",
+      "tradeoff": "无",
+      "risk": "低",
+      "stage": "P0"
+    },
+    {
+      "decision": "构建",
+      "selected": "Maven 3.9.12",
+      "why": "已验证可用，与同 Workspace 项目一致",
+      "alternative": "Gradle",
+      "tradeoff": "无收益",
+      "risk": "低",
+      "stage": "P0"
+    },
+    {
+      "decision": "服务框架",
+      "selected": "Spring Boot 3.3.5",
+      "why": "与 workflow-platform / oa-platform 一致",
+      "alternative": "3.4.x",
+      "tradeoff": "版本漂移",
+      "risk": "维护状态未核验（UNVERIFIED）",
+      "stage": "P0"
+    },
+    {
+      "decision": "主数据存储",
+      "selected": "PostgreSQL 16",
+      "why": "部分唯一索引、NUMERIC、JSONB、text_pattern_ops 前缀索引、与 workflow-platform 同栈",
+      "alternative": "MySQL 8.4",
+      "tradeoff": "偏离提示词建议栈；见 Q-01",
+      "risk": "R-15",
+      "stage": "P0"
+    },
+    {
+      "decision": "持久层",
+      "selected": "MyBatis-Plus",
+      "why": "复杂 SQL 写在可审查 XML，符合 SQL 集中在 Mapper 的规范",
+      "alternative": "JPA",
+      "tradeoff": "隐式 SQL 不利审查",
+      "risk": "兼容版本未核验",
+      "stage": "P0"
+    },
+    {
+      "decision": "迁移工具",
+      "selected": "Flyway",
+      "why": "SQL 原生，便于写表与字段注释",
+      "alternative": "Liquibase",
+      "tradeoff": "抽象层让注释与 PG 特性表达变绕",
+      "risk": "低",
+      "stage": "P0"
+    },
+    {
+      "decision": "缓存",
+      "selected": "L1 Caffeine（仅主数据与权限快照）",
+      "why": "读热点仅限主数据与权限，单进程 L1 足够",
+      "alternative": "Redis L2",
+      "tradeoff": "否决 Redis：无跨实例失效需求",
+      "risk": "低",
+      "stage": "P1"
+    },
+    {
+      "decision": "搜索",
+      "selected": "无（用 PG 索引）",
+      "why": "查询是结构化筛选加分页",
+      "alternative": "Elasticsearch",
+      "tradeoff": "否决：共享栈无 ES 实例且无全文需求",
+      "risk": "低",
+      "stage": "不引入"
+    },
+    {
+      "decision": "消息",
+      "selected": "无 MQ；同库事务性 Outbox",
+      "why": "单进程无跨进程异步协作",
+      "alternative": "Kafka 3.8 / RabbitMQ 3.13（dev-infra 已有）",
+      "tradeoff": "推迟到 P8 或 Stage 3，届时复用而非新建",
+      "risk": "R-07",
+      "stage": "P8/Stage 3"
+    },
+    {
+      "decision": "认证/IdP",
+      "selected": "Casdoor via auth-platform",
+      "why": "REUSE_EXISTING，已有 SDK 与接入文档",
+      "alternative": "自建 / Keycloak",
+      "tradeoff": "绑定其 OIDC 行为，退出成本低",
+      "risk": "R-06",
+      "stage": "P1"
+    },
+    {
+      "decision": "工作流引擎",
+      "selected": "MVP 内置顺序审批；P8 接 workflow-platform",
+      "why": "MVP 无会签并行需求",
+      "alternative": "直接接 Flowable",
+      "tradeoff": "提前接入会引入 Kafka 与跨系统最终一致",
+      "risk": "R-07",
+      "stage": "P1/P8"
+    },
+    {
+      "decision": "可观测",
+      "selected": "结构化日志+traceId+health",
+      "why": "NFR-05 底线，单进程排障足够",
+      "alternative": "metrics+traces",
+      "tradeoff": "推迟到 P10",
+      "risk": "低",
+      "stage": "P0/P10"
+    },
+    {
+      "decision": "配置",
+      "selected": "env（技术配置）+ 数据库表（业务参数）",
+      "why": "两类配置职责不同，业务参数需业务可维护且有审计",
+      "alternative": "Nacos 2.4.3",
+      "tradeoff": "否决：单部署下解决不存在的问题，且避免配置双权威来源",
+      "risk": "低",
+      "stage": "P0/P1"
+    },
+    {
+      "decision": "限流",
+      "selected": "无",
+      "why": "内部系统无公网入口",
+      "alternative": "应用入口/网关限流",
+      "tradeoff": "触发后再议",
+      "risk": "低",
+      "stage": "不引入"
+    },
+    {
+      "decision": "对象存储",
+      "selected": "MinIO（dev-infra）",
+      "why": "附件需跨实例可见，REUSE_EXISTING",
+      "alternative": "本地磁盘",
+      "tradeoff": "多实例不共享",
+      "risk": "R-09",
+      "stage": "P2"
+    },
+    {
+      "decision": "前端",
+      "selected": "Vue 3 + TypeScript + Vite + Element Plus",
+      "why": "ERP 后台表单表格密集，组件成熟",
+      "alternative": "React 18 + antd5",
+      "tradeoff": "无复用代码，按提示词建议",
+      "risk": "低",
+      "stage": "与后端切片并行"
+    }
+  ],
+  "adr": [
+    {
+      "id": "ADR-001",
+      "title": "主数据库选用 PostgreSQL 16 而非 MySQL 8.4",
+      "status": "PROPOSED",
+      "note": "待 Q-01 答复后定稿；P0 第一个 ChangeSet 写入"
+    },
+    {
+      "id": "ADR-002",
+      "title": "采用模块化单体而非微服务",
+      "status": "PROPOSED",
+      "note": "9 项驱动因素 8 项指向单体，0 项指向微服务"
+    },
+    {
+      "id": "ADR-003",
+      "title": "审批能力用 Port+Adapter，MVP 内置顺序审批，不引入 BPMN 引擎",
+      "status": "PROPOSED",
+      "note": "切换条件与代价已写入 WORKFLOW_STATE_MODEL 第 5 节"
+    },
+    {
+      "id": "ADR-004",
+      "title": "库存台账维度为 tenant+company+warehouse+location+sku+batch，location 与 batch 用非空哨兵",
+      "status": "PROPOSED",
+      "note": "防止后期新增维度导致全量迁移（R-04）"
+    },
+    {
+      "id": "ADR-005",
+      "title": "认证外包给 Casdoor，授权（RBAC+DataScope）在 ERP 自建",
+      "status": "PROPOSED",
+      "note": "结构化批量判权与 SQL 下推是远程 ReBAC 的弱项"
+    },
+    {
+      "id": "ADR-006",
+      "title": "跨上下文协作只经应用服务或领域事件，由 ArchUnit 强制",
+      "status": "PROPOSED",
+      "note": "Stage 1 就守住未来可拆的约束"
+    }
+  ],
+  "engineeringBaseline": {
+    "status": "NOT_RUN",
+    "note": "规划模式；P0 的 CS-M0-01 建立 engineering_baseline gate"
+  },
+  "projectStructure": {
+    "status": "NOT_CREATED",
+    "note": "规划模式，仅创建了规划文档目录 .engineering/bootstrap 与 docs/design/erp-platform"
+  },
+  "implementation": {
+    "status": "NOT_STARTED",
+    "completedMilestones": []
+  },
+  "verification": {
+    "status": "SKIPPED",
+    "reason": "GREENFIELD_PLANNING 模式，未授予 modify_product_code / execute_tests；本轮没有代码可编译或测试",
+    "checks": [
+      {
+        "check": "compile",
+        "result": "SKIPPED",
+        "reason": "无代码"
+      },
+      {
+        "check": "unit-test",
+        "result": "SKIPPED",
+        "reason": "无代码"
+      },
+      {
+        "check": "integration-test",
+        "result": "SKIPPED",
+        "reason": "无代码"
+      },
+      {
+        "check": "toolchain-availability",
+        "result": "PASS",
+        "evidence": "java -version → 21.0.11；mvn -v → 3.9.12；docker 可用"
+      },
+      {
+        "check": "port-availability",
+        "result": "PASS",
+        "evidence": "扫描 Workspace 全部 yml/compose 端口，8500-8505 未被占用"
+      },
+      {
+        "check": "planner-handoff-source-compilable",
+        "result": "UNVERIFIED",
+        "reason": "见 evidence 中的校验记录"
+      }
+    ]
+  },
+  "knownRisks": [
+    {
+      "id": "R-01",
+      "category": "REQUIREMENT",
+      "risk": "能力地图源自提示词模板而非真实干系人",
+      "trigger": "首次与真实用户评审 MVP",
+      "impact": "Core 上下文返工",
+      "mitigation": "MVP 只做 P2P/O2C 骨干，Supporting 到 P7 再按反馈展开",
+      "verification": "与干系人逐条走查 CAP-C01..C09 并记录确认/否决",
+      "phase": "P0 前"
+    },
+    {
+      "id": "R-02",
+      "category": "DOMAIN",
+      "risk": "统一单据模型被泛化成万能单据表",
+      "trigger": "出现名为 business_document 的通用表承载所有单据",
+      "impact": "领域规则退化为配置，不变量无处安放",
+      "mitigation": "机制统一、状态集合与表结构各自拥有；kernel 只提供基类与状态机机制",
+      "verification": "架构测试：不存在被 3 个以上模块共同写入的业务表",
+      "phase": "P1"
+    },
+    {
+      "id": "R-03",
+      "category": "ARCHITECTURE",
+      "risk": "为企业级过早拆服务或上中间件",
+      "trigger": "出现第二个可部署单元或新增 MQ/ES/Redis",
+      "impact": "一致性从本地事务退化为分布式问题",
+      "mitigation": "新增部署单元须先有可观察触发条件；新增组件须过 Complexity Budget",
+      "verification": "Gate G-03 逐期检查；compose 服务清单与 TECH_SELECTION 逐项比对",
+      "phase": "全程"
+    },
+    {
+      "id": "R-04",
+      "category": "DATA",
+      "risk": "库存桶主键维度选错（缺 batch 或 location）",
+      "trigger": "P3 之后需要新增台账维度",
+      "impact": "全量数据迁移加历史重算",
+      "mitigation": "MVP 就把 batch 与 location 放进唯一键，用非空哨兵占位",
+      "verification": "P3 Gate 查看 inv_inventory_balance 唯一索引含六个维度",
+      "phase": "P3"
+    },
+    {
+      "id": "R-05",
+      "category": "CONSISTENCY",
+      "risk": "单据过账与库存变动不在同一事务",
+      "trigger": "出现先更新单据再调库存的两段代码",
+      "impact": "INV-01 被破坏且无法自动发现",
+      "mitigation": "过账走单一入口 StockPostingService 与单据更新同事务；每日对账",
+      "verification": "INV-01 集成测试与对账脚本在 CI 中运行",
+      "phase": "P3-P6"
+    },
+    {
+      "id": "R-06",
+      "category": "SECURITY",
+      "risk": "数据权限只在 Controller 判定被绕过",
+      "trigger": "新增直接调用 Mapper 的查询路径",
+      "impact": "越权读取其他部门或公司数据",
+      "mitigation": "数据权限在持久层拦截器统一施加；ArchUnit 禁止 Controller→Mapper",
+      "verification": "P1 Gate 断言生成的 SQL 含 tenant_id 与 org_path 条件",
+      "phase": "P1"
+    },
+    {
+      "id": "R-07",
+      "category": "INTEGRATION",
+      "risk": "接入 workflow-platform 引入 Kafka 与跨系统最终一致拖累 MVP",
+      "trigger": "在 P6 之前启用 WorkflowPlatformApprovalAdapter",
+      "impact": "MVP 延期，新增 outbox/inbox/DLQ/对账四套机制",
+      "mitigation": "MVP 用内置顺序审批；接入推迟到 P8 且保留内置适配器回落",
+      "verification": "P8 Gate 切换适配器后 P4/P5 审批 E2E 仍绿",
+      "phase": "P8"
+    },
+    {
+      "id": "R-08",
+      "category": "PERFORMANCE",
+      "risk": "报表直接 JOIN 几十张业务表",
+      "trigger": "报表查询 P95 超过 3 秒或月末写入劣化",
+      "impact": "业务不可用",
+      "mitigation": "报表走 rpt_* 读模型；报表 SQL 不出现业务表",
+      "verification": "P9 Gate 报表 SQL 扫描无业务表前缀且 P95 达标",
+      "phase": "P9"
+    },
+    {
+      "id": "R-09",
+      "category": "OPERATIONAL",
+      "risk": "与 dev-infra 共享 PostgreSQL 隔离不当影响其他项目",
+      "trigger": "使用共享账号或未独立 database",
+      "impact": "其他项目受影响；误删共享卷",
+      "mitigation": "按 dev-infra 约定独立 database+owner+应用账号；禁止 docker compose down -v 作为日常停止方式",
+      "verification": "P0 Gate 连接串审查与运维文档写明禁令",
+      "phase": "P0"
+    },
+    {
+      "id": "R-10",
+      "category": "DELIVERY",
+      "risk": "一次推进 12 个阶段反馈周期过长",
+      "trigger": "连续两期没有可演示的闭环",
+      "impact": "方向偏差发现太晚",
+      "mitigation": "MVP 在 P6 闭合；P4/P5 并行；每期 Exit Criteria 都是可演示行为",
+      "verification": "每期结束有一次可运行演示",
+      "phase": "全程"
+    },
+    {
+      "id": "R-11",
+      "category": "OVER_ENGINEERING",
+      "risk": "统一单据模型/战术模式/缓存/MQ/分布式事务/微服务/端口七处过度设计",
+      "trigger": "出现万能单据表、给 Supporting 上下文建聚合、compose 出现 Redis 或 MQ、引入 Seata、拆出第二个进程",
+      "impact": "复杂度上升而收益为零，且难以回退",
+      "mitigation": "逐点写明过度设计的样子与阻止它的检查（见 RISK_REGISTER.md 专表）",
+      "verification": "每期 Gate G-03 按专表七项逐条检查",
+      "phase": "全程"
+    },
+    {
+      "id": "R-12",
+      "category": "DOMAIN",
+      "risk": "与 wms-platform 能力重叠出现两个库存权威",
+      "trigger": "在 ERP 里实现波次/拣货路径/序列号逐件追踪",
+      "impact": "重复投入且两套库存数据对不上",
+      "mitigation": "SYSTEM_BOUNDARY 划清：ERP 只做库存账，物理执行留 Port；MVP 不集成",
+      "verification": "每期 Gate G-03 检查是否出现 WMS 语义",
+      "phase": "全程"
+    },
+    {
+      "id": "R-13",
+      "category": "DATA",
+      "risk": "主数据修改后历史单据金额或名称变化",
+      "trigger": "单据行持有主数据外键而非快照",
+      "impact": "审计不可解释，对账失败",
+      "mitigation": "MasterDataRef 快照嵌入单据行，关键字段引用后冻结",
+      "verification": "P2 Gate 改名后历史单据显示快照值",
+      "phase": "P2"
+    },
+    {
+      "id": "R-14",
+      "category": "SECURITY",
+      "risk": "审计日志被应用账号篡改或删除",
+      "trigger": "应用账号拥有审计表 UPDATE/DELETE 权限",
+      "impact": "审计失去证明力",
+      "mitigation": "审计表只追加；数据库级 GRANT 收回 UPDATE/DELETE",
+      "verification": "P1 Gate 用应用账号尝试 UPDATE 审计表应失败",
+      "phase": "P1"
+    },
+    {
+      "id": "R-15",
+      "category": "DELIVERY",
+      "risk": "版本兼容未核验就开工",
+      "trigger": "P0 直接开始写代码",
+      "impact": "中途升级依赖返工",
+      "mitigation": "P0 第一个 ChangeSet 核验并写 ADR",
+      "verification": "P0 Gate ADR 中有核验结论与来源",
+      "phase": "P0"
+    }
+  ],
+  "technicalDebt": [
+    {
+      "id": "TD-01",
+      "item": "库位维度以哨兵 NO_LOCATION 占位，未真正启用",
+      "reason": "A-11；启用时无需改主键",
+      "payBackTrigger": "Q-02 答复为需要库位管理"
+    },
+    {
+      "id": "TD-02",
+      "item": "多币种字段预留但无汇率折算",
+      "reason": "A-08",
+      "payBackTrigger": "出现第二个结算币种的真实交易"
+    },
+    {
+      "id": "TD-03",
+      "item": "内置顺序审批不支持会签/并行",
+      "reason": "A-12，刻意控制 MVP 复杂度",
+      "payBackTrigger": "出现真实会签或并行审批需求（P8）"
+    },
+    {
+      "id": "TD-04",
+      "item": "报表在 P9 之前直接查台账，未走读模型",
+      "reason": "读模型需要真实数据确定口径",
+      "payBackTrigger": "报表查询 P95 超过 3 秒或影响 OLTP"
+    },
+    {
+      "id": "TD-05",
+      "item": "版本兼容（Spring Boot/MyBatis-Plus/Flyway+PG16）未核验",
+      "reason": "规划阶段不联网核验官方矩阵",
+      "payBackTrigger": "P0 第一个 ChangeSet 必须核验"
+    }
+  ],
+  "nextMilestones": [
+    {
+      "id": "M0",
+      "name": "Foundation",
+      "goal": "工程基线与可运行骨架",
+      "status": "PLANNED"
+    },
+    {
+      "id": "M1",
+      "name": "Platform Kernel",
+      "goal": "组织/权限/编号/单据模型/状态机/审计/单据图/审批端口",
+      "status": "PLANNED"
+    },
+    {
+      "id": "M2",
+      "name": "Master Data",
+      "goal": "主数据与引用后修改规则",
+      "status": "PLANNED"
+    }
+  ],
+  "evidence": [
+    {
+      "type": "USER_REQUIREMENT",
+      "ref": "/Users/liruijun/Downloads/ERP系统端到端建设提示词.md",
+      "note": "本轮全部业务范围与禁止事项的来源"
+    },
+    {
+      "type": "REPOSITORY_EVIDENCE",
+      "ref": "dev-infra/docs/service-catalog.md",
+      "note": "共享中间件清单：MySQL 8.4 / PostgreSQL 16 / Redis 7 / Kafka 3.8 / RabbitMQ 3.13 / MinIO / Nacos 2.4.3；每项目独立 database 与账号；禁止 docker compose down -v"
+    },
+    {
+      "type": "REPOSITORY_EVIDENCE",
+      "ref": "dev-infra/compose.yaml:35",
+      "note": "postgres:16-alpine 实例定义"
+    },
+    {
+      "type": "REPOSITORY_EVIDENCE",
+      "ref": "auth-platform/README.md",
+      "note": "Casdoor 身份/SSO + SpiceDB ReBAC + auth-platform-sdk Starter；支撑认证外包决策"
+    },
+    {
+      "type": "REPOSITORY_EVIDENCE",
+      "ref": "workflow-platform/README.md",
+      "note": "Flowable 7.1.0 审批中台，SDK + Kafka 契约，server:8300/admin:8301；办理返回 202 PENDING_BUSINESS"
+    },
+    {
+      "type": "REPOSITORY_EVIDENCE",
+      "ref": "wms-platform/docs/design/02-domain.md",
+      "note": "WMS 库存桶维度含 location/owner/quality、序列号唯一域、跨仓 Seata TCC；支撑 ERP 与 WMS 的边界划分"
+    },
+    {
+      "type": "REPOSITORY_EVIDENCE",
+      "ref": "wms-platform/README.md",
+      "note": "WMS 为独立多进程系统，说明其执行模型不适合搬进 ERP"
+    },
+    {
+      "type": "TECHNICAL_CONSTRAINT",
+      "ref": "java -version / mvn -v",
+      "note": "Java 21.0.11 与 Maven 3.9.12 在本机可用，verify 命令可执行"
+    },
+    {
+      "type": "TECHNICAL_CONSTRAINT",
+      "ref": "Workspace 端口扫描",
+      "note": "8500-8505 未被占用"
+    },
+    {
+      "type": "ARCHITECTURE_PRINCIPLE",
+      "ref": "_protocol/ROUTING-PROTOCOL-v1.md + skill-router route 输出",
+      "note": "Router 判定 NEW_PROJECT_BOOTSTRAP → project-bootstrap，status=ROUTE，无 blocker"
+    },
+    {
+      "type": "BUSINESS_ASSUMPTION",
+      "ref": ".engineering/bootstrap/ASSUMPTIONS.md",
+      "note": "A-00..A-14 共 15 条假设，均非事实"
+    },
+    {
+      "type": "INDUSTRY_PATTERN",
+      "ref": ".engineering/bootstrap/CAPABILITY_MAP.md",
+      "note": "P2P/O2C 链路划分为行业通行做法，已说明为何适用于本系统"
+    }
+  ],
+  "greenfieldPlanning": {
+    "mode": "GREENFIELD_PLANNING",
+    "runMode": [
+      "READ_ONLY",
+      "DESIGN_ONLY"
+    ],
+    "workspace": "REFERENCE_SYSTEM",
+    "artifactRoot": ".engineering/bootstrap",
+    "artifacts": [
+      {
+        "id": "SYSTEM_VISION",
+        "ref": ".engineering/bootstrap/SYSTEM_VISION.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "CAPABILITY_MAP",
+        "ref": ".engineering/bootstrap/CAPABILITY_MAP.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "SYSTEM_BOUNDARY",
+        "ref": ".engineering/bootstrap/SYSTEM_BOUNDARY.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "NFR",
+        "ref": ".engineering/bootstrap/NFR.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "ASSUMPTIONS",
+        "ref": ".engineering/bootstrap/ASSUMPTIONS.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "OPEN_QUESTIONS",
+        "ref": ".engineering/bootstrap/OPEN_QUESTIONS.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "MVP_SCOPE",
+        "ref": ".engineering/bootstrap/MVP_SCOPE.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "ROADMAP",
+        "ref": ".engineering/bootstrap/ROADMAP.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "RISK_REGISTER",
+        "ref": ".engineering/bootstrap/RISK_REGISTER.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "PLANNER_HANDOFF",
+        "ref": ".engineering/bootstrap/PLANNER_HANDOFF.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "EXECUTION_PLAN_SOURCE",
+        "ref": ".engineering/bootstrap/EXECUTION_PLAN_SOURCE.json",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "NEXT_ACTIONS",
+        "ref": ".engineering/bootstrap/NEXT_ACTIONS.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "ARTIFACT_INDEX",
+        "ref": ".engineering/bootstrap/ARTIFACT_INDEX.md",
+        "owner": "project-bootstrap"
+      },
+      {
+        "id": "BRIEF",
+        "ref": "docs/design/erp-platform/BRIEF.md",
+        "owner": "public-engineering-workflow"
+      },
+      {
+        "id": "BACKEND_ARCHITECTURE",
+        "ref": "docs/design/erp-platform/BACKEND_ARCHITECTURE.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "TECH_SELECTION",
+        "ref": "docs/design/erp-platform/TECH_SELECTION.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "DOMAIN_MAP",
+        "ref": "docs/design/erp-platform/architecture/DOMAIN_MAP.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "BOUNDED_CONTEXT_MAP",
+        "ref": "docs/design/erp-platform/architecture/BOUNDED_CONTEXT_MAP.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "ARCHITECTURE_OPTIONS",
+        "ref": "docs/design/erp-platform/architecture/ARCHITECTURE_OPTIONS.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "ARCHITECTURE_EVOLUTION",
+        "ref": "docs/design/erp-platform/architecture/ARCHITECTURE_EVOLUTION.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "MODULE_SERVICE_MAP",
+        "ref": "docs/design/erp-platform/architecture/MODULE_SERVICE_MAP.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "DATA_ARCHITECTURE",
+        "ref": "docs/design/erp-platform/architecture/DATA_ARCHITECTURE.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "INTEGRATION_ARCHITECTURE",
+        "ref": "docs/design/erp-platform/architecture/INTEGRATION_ARCHITECTURE.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "SECURITY_ARCHITECTURE",
+        "ref": "docs/design/erp-platform/architecture/SECURITY_ARCHITECTURE.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "CONSISTENCY_MODEL",
+        "ref": "docs/design/erp-platform/architecture/CONSISTENCY_MODEL.md",
+        "owner": "backend-architecture-design"
+      },
+      {
+        "id": "WORKFLOW_STATE_MODEL",
+        "ref": "docs/design/erp-platform/architecture/WORKFLOW_STATE_MODEL.md",
+        "owner": "backend-architecture-design"
+      }
+    ],
+    "systemVision": {
+      "systemName": {
+        "value": "erp-platform",
+        "tag": "ASSUMPTION",
+        "evidence": "BUSINESS_ASSUMPTION"
+      },
+      "businessGoal": {
+        "value": "让一家企业在同一套数据上完成采购-入库-库存-销售-出库-应收应付-结算的日常经营，且每一笔库存与金额变化都能追溯到来源单据",
+        "tag": "KNOWN",
+        "evidence": "USER_REQUIREMENT"
+      },
+      "problemStatement": {
+        "value": "进销存与财务分散在 Excel 或独立工具时：库存账实不符、单据之间无法互相追溯、应收应付靠人工对账、权限与审计缺失",
+        "tag": "ASSUMPTION",
+        "evidence": "INDUSTRY_PATTERN"
+      },
+      "targetUsers": {
+        "value": [
+          "采购员",
+          "采购主管",
+          "仓管员",
+          "销售员",
+          "销售主管",
+          "应收会计",
+          "应付会计",
+          "出纳",
+          "财务主管",
+          "系统管理员",
+          "经营者"
+        ],
+        "tag": "KNOWN",
+        "evidence": "USER_REQUIREMENT"
+      },
+      "businessValue": {
+        "value": [
+          "库存可信（台账等于流水累计）",
+          "单据链可追溯",
+          "应收应付自动生成并可核销",
+          "权限与审计满足内控",
+          "模块化可持续扩展"
+        ],
+        "tag": "KNOWN",
+        "evidence": "USER_REQUIREMENT"
+      },
+      "systemPositioning": {
+        "value": "经营主数据与业务单据的权威系统（System of Record）；不是 WMS，不是总账财务软件，不是 CRM",
+        "tag": "ASSUMPTION",
+        "evidence": "ARCHITECTURE_PRINCIPLE"
+      },
+      "businessScope": {
+        "value": "基础资料 → 采购 → 入库 → 库存 → 销售 → 出库 → 应收应付 → 结算核销 → 审批 → 报表",
+        "tag": "KNOWN",
+        "evidence": "USER_REQUIREMENT"
+      },
+      "expectedScale": {
+        "value": "ASSUMPTION：单租户 100-2000 用户、并发<=200、日单据<=8000 头/50000 行、SKU<=500000、库存桶<=2000000、峰值倍数 5 倍 → 推导峰值约 45 写/秒",
+        "tag": "ASSUMPTION",
+        "evidence": "BUSINESS_ASSUMPTION"
+      },
+      "currentConstraints": {
+        "value": [
+          "多租户/多公司/多组织/多仓库/多角色",
+          "不得为展示技术强拆服务",
+          "不得一上来 CRUD",
+          "未过 Gate 不得进入下一阶段"
+        ],
+        "tag": "USER_CONSTRAINT",
+        "evidence": "USER_REQUIREMENT"
+      },
+      "futureExpectations": {
+        "value": [
+          "总账凭证与会计期间",
+          "多币种折算",
+          "WMS 对接",
+          "电商渠道接入",
+          "BI"
+        ],
+        "tag": "KNOWN",
+        "evidence": "USER_REQUIREMENT"
+      }
+    },
+    "capabilityMap": {
+      "core": [
+        {
+          "id": "CAP-C01",
+          "name": "库存余额台账",
+          "businessObjects": [
+            "库存余额桶"
+          ],
+          "keyActions": [
+            "增",
+            "减",
+            "锁定",
+            "解锁"
+          ],
+          "keyRules": "桶唯一键六维度；onHand>=0；reserved+locked<=onHand；available 为计算值",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C02",
+          "name": "库存流水账",
+          "businessObjects": [
+            "库存流水"
+          ],
+          "keyActions": [
+            "记账(仅追加)"
+          ],
+          "keyRules": "不可变；每次余额变化有且只有一条来源单据；期初+入-出=期末可对账",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C03",
+          "name": "库存预占与释放",
+          "businessObjects": [
+            "库存预占"
+          ],
+          "keyActions": [
+            "预占",
+            "部分消耗",
+            "释放",
+            "过期回收"
+          ],
+          "keyRules": "按来源单据行幂等；释放不超过未消耗量",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C04",
+          "name": "批次维度管理",
+          "businessObjects": [
+            "库存批次"
+          ],
+          "keyActions": [
+            "建批",
+            "指定批次出入"
+          ],
+          "keyRules": "批次是台账主键的一部分；无批次用非空哨兵 NO_BATCH",
+          "evidence": "ARCHITECTURE_PRINCIPLE",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C05",
+          "name": "采购订单履约",
+          "businessObjects": [
+            "采购订单",
+            "收货单",
+            "入库单"
+          ],
+          "keyActions": [
+            "下单",
+            "收货",
+            "入库",
+            "超收",
+            "少收",
+            "取消",
+            "关闭"
+          ],
+          "keyRules": "累计收货<=订单量*(1+超收比例)；已执行部分不可取消只可关闭",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C06",
+          "name": "销售订单履约",
+          "businessObjects": [
+            "销售订单",
+            "出库单",
+            "发货单"
+          ],
+          "keyActions": [
+            "接单",
+            "预占",
+            "拣货",
+            "出库",
+            "发货",
+            "签收",
+            "分批"
+          ],
+          "keyRules": "发货量<=预占量；取消释放预占",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C07",
+          "name": "应付管理与付款",
+          "businessObjects": [
+            "应付单",
+            "付款单"
+          ],
+          "keyActions": [
+            "生成应付",
+            "付款",
+            "冲销"
+          ],
+          "keyRules": "(来源类型,来源ID) 唯一；累计付款<=应付金额",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C08",
+          "name": "应收管理与收款",
+          "businessObjects": [
+            "应收单",
+            "收款单"
+          ],
+          "keyActions": [
+            "生成应收",
+            "收款",
+            "冲销"
+          ],
+          "keyRules": "同 CAP-C07 镜像",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-C09",
+          "name": "核销",
+          "businessObjects": [
+            "核销记录"
+          ],
+          "keyActions": [
+            "核销",
+            "反核销"
+          ],
+          "keyRules": "已核销<=单据金额；同一对不重复核销；反核销留痕",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        }
+      ],
+      "supporting": [
+        {
+          "id": "CAP-S01",
+          "name": "采购退货",
+          "businessObjects": [
+            "采购退货单"
+          ],
+          "keyActions": [
+            "退货出库",
+            "冲减应付"
+          ],
+          "keyRules": "退货量<=已入库未退量；走新单据不改原单",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-S02",
+          "name": "销售退货",
+          "businessObjects": [
+            "销售退货单"
+          ],
+          "keyActions": [
+            "退货入库",
+            "冲减应收"
+          ],
+          "keyRules": "退货入库不沿用原出库批次结论",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-S03",
+          "name": "仓间调拨",
+          "businessObjects": [
+            "调拨单"
+          ],
+          "keyActions": [
+            "调出",
+            "在途",
+            "调入"
+          ],
+          "keyRules": "在途不计入任一仓 onHand；企业维度数量守恒",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-S04",
+          "name": "库存盘点",
+          "businessObjects": [
+            "盘点单"
+          ],
+          "keyActions": [
+            "封存",
+            "点数",
+            "复核",
+            "审批",
+            "生成差异调整"
+          ],
+          "keyRules": "差异必须经审批才落台账",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-S05",
+          "name": "报损报溢与库存调整",
+          "businessObjects": [
+            "库存调整单"
+          ],
+          "keyActions": [
+            "调增",
+            "调减"
+          ],
+          "keyRules": "必须有原因码与审批；禁止直接改余额不写流水",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-S06",
+          "name": "客户信用额度控制",
+          "businessObjects": [
+            "客户信用"
+          ],
+          "keyActions": [
+            "占用",
+            "释放",
+            "超限拦截"
+          ],
+          "keyRules": "占用=未核销应收+未出库订单金额；超限需审批",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-S07",
+          "name": "供应商对账",
+          "businessObjects": [
+            "对账单"
+          ],
+          "keyActions": [
+            "生成对账期",
+            "确认",
+            "差异处理"
+          ],
+          "keyRules": "确认后应付锁定，差异走调整单",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-S08",
+          "name": "销售报价",
+          "businessObjects": [
+            "报价单"
+          ],
+          "keyActions": [
+            "报价",
+            "转订单",
+            "失效"
+          ],
+          "keyRules": "报价不占库存；转单重新校验价格与信用",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-S09",
+          "name": "采购申请",
+          "businessObjects": [
+            "采购申请单"
+          ],
+          "keyActions": [
+            "申请",
+            "审批",
+            "转采购订单"
+          ],
+          "keyRules": "不产生库存与金额效果；可合并转单",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-S10",
+          "name": "库存计价(移动加权平均)",
+          "businessObjects": [
+            "库存成本"
+          ],
+          "keyActions": [
+            "入库加权",
+            "出库结转"
+          ],
+          "keyRules": "任何计价方法都可从不可变流水重算",
+          "evidence": "BUSINESS_ASSUMPTION",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        }
+      ],
+      "generic": [
+        {
+          "id": "CAP-G01",
+          "name": "身份认证与SSO",
+          "businessObjects": [
+            "用户身份"
+          ],
+          "keyActions": [
+            "登录",
+            "SSO",
+            "登出"
+          ],
+          "keyRules": "认证外包、授权留在 ERP",
+          "evidence": "REPOSITORY_EVIDENCE",
+          "externalizable": true,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-G02",
+          "name": "文件存储与附件",
+          "businessObjects": [
+            "附件"
+          ],
+          "keyActions": [
+            "上传",
+            "下载"
+          ],
+          "keyRules": "权限随单据",
+          "evidence": "REPOSITORY_EVIDENCE",
+          "externalizable": true,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-G03",
+          "name": "消息通知",
+          "businessObjects": [
+            "通知"
+          ],
+          "keyActions": [
+            "发送"
+          ],
+          "keyRules": "审批待办与异常提醒",
+          "evidence": "INDUSTRY_PATTERN",
+          "externalizable": true,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-G04",
+          "name": "导入导出",
+          "businessObjects": [
+            "导入任务"
+          ],
+          "keyActions": [
+            "导入",
+            "导出"
+          ],
+          "keyRules": "导入必须校验并可回滚",
+          "evidence": "INDUSTRY_PATTERN",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        }
+      ],
+      "platform": [
+        {
+          "id": "CAP-P01",
+          "name": "租户与组织建模",
+          "businessObjects": [
+            "Tenant",
+            "Company",
+            "Organization",
+            "Department",
+            "Employee"
+          ],
+          "keyActions": [
+            "建模",
+            "调整",
+            "生效"
+          ],
+          "keyRules": "单表 org_unit + type + 闭包/物化路径；不为部门与业务单元各建一套表",
+          "evidence": "ARCHITECTURE_PRINCIPLE",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P02",
+          "name": "用户与角色",
+          "businessObjects": [
+            "User",
+            "Role"
+          ],
+          "keyActions": [
+            "开通",
+            "授权",
+            "回收"
+          ],
+          "keyRules": "一人多岗；角色是授权载体不是组织节点",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P03",
+          "name": "功能权限(菜单/按钮/API)",
+          "businessObjects": [
+            "Permission",
+            "Menu"
+          ],
+          "keyActions": [
+            "判权",
+            "下发菜单"
+          ],
+          "keyRules": "API 权限是唯一安全边界；菜单与按钮只是呈现",
+          "evidence": "ARCHITECTURE_PRINCIPLE",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P04",
+          "name": "数据权限与隔离",
+          "businessObjects": [
+            "DataScope"
+          ],
+          "keyActions": [
+            "解析范围",
+            "下推过滤"
+          ],
+          "keyRules": "六种数据范围；租户/公司/仓库隔离在查询层统一施加；过滤字段走服务端允许列表",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P05",
+          "name": "主数据中心",
+          "businessObjects": [
+            "商品",
+            "往来单位",
+            "财务基础数据"
+          ],
+          "keyActions": [
+            "建档",
+            "审核",
+            "启停用",
+            "版本"
+          ],
+          "keyRules": "编码唯一；被单据引用后受限修改 + 单据端快照",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P06",
+          "name": "编号中心",
+          "businessObjects": [
+            "单据号"
+          ],
+          "keyActions": [
+            "取号"
+          ],
+          "keyRules": "tenant+businessType+date+sequence；并发唯一、可读、不依赖分布式锁",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P07",
+          "name": "统一单据模型与状态机",
+          "businessObjects": [
+            "DocumentHeader",
+            "DocumentItem",
+            "DocumentStatus"
+          ],
+          "keyActions": [
+            "迁移",
+            "记录迁移日志"
+          ],
+          "keyRules": "机制统一、状态集合各自拥有；非法迁移拒绝、迁移幂等、乐观锁并发",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P08",
+          "name": "单据关系图",
+          "businessObjects": [
+            "DocumentLink"
+          ],
+          "keyActions": [
+            "登记",
+            "正查",
+            "反查"
+          ],
+          "keyRules": "回答来自哪里与产生了什么；由生产方发事件登记",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P09",
+          "name": "业务审计与操作日志",
+          "businessObjects": [
+            "OperationLog",
+            "AuditLog",
+            "BusinessChangeLog"
+          ],
+          "keyActions": [
+            "留痕",
+            "查询"
+          ],
+          "keyRules": "谁/何时/操作什么/前值/后值/IP/终端/关联单据；禁止记录密钥与证件明文",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P10",
+          "name": "审批中心",
+          "businessObjects": [
+            "ApprovalDefinition",
+            "ApprovalInstance",
+            "ApprovalNode",
+            "ApprovalTask",
+            "ApprovalRecord"
+          ],
+          "keyActions": [
+            "提交",
+            "审批",
+            "驳回",
+            "撤回",
+            "转交",
+            "加签",
+            "抄送"
+          ],
+          "keyRules": "以 businessType+businessId 接入；审批状态不等于业务状态",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-P11",
+          "name": "业务参数配置",
+          "businessObjects": [
+            "Config"
+          ],
+          "keyActions": [
+            "配置",
+            "生效"
+          ],
+          "keyRules": "超收比例、负库存策略等按租户/公司生效并有审计",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "MUST_HAVE"
+        }
+      ],
+      "integration": [
+        {
+          "id": "CAP-I01",
+          "name": "身份平台集成",
+          "businessObjects": [
+            "auth-platform/Casdoor"
+          ],
+          "keyActions": [
+            "OIDC 登录"
+          ],
+          "keyRules": "ACL 隔离其 org/group 模型",
+          "evidence": "REPOSITORY_EVIDENCE",
+          "externalizable": true,
+          "mvpTier": "MUST_HAVE"
+        },
+        {
+          "id": "CAP-I02",
+          "name": "审批引擎集成",
+          "businessObjects": [
+            "workflow-platform"
+          ],
+          "keyActions": [
+            "发起",
+            "回执"
+          ],
+          "keyRules": "SDK + Kafka 契约；202 已受理不等于已完成",
+          "evidence": "REPOSITORY_EVIDENCE",
+          "externalizable": true,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-I03",
+          "name": "WMS 仓储执行集成",
+          "businessObjects": [
+            "wms-platform"
+          ],
+          "keyActions": [
+            "委托执行",
+            "接收过账回执"
+          ],
+          "keyRules": "端口预留；避免两个库存权威",
+          "evidence": "REPOSITORY_EVIDENCE",
+          "externalizable": true,
+          "mvpTier": "LATER"
+        },
+        {
+          "id": "CAP-I04",
+          "name": "电商/渠道订单接入",
+          "businessObjects": [
+            "外部订单"
+          ],
+          "keyActions": [
+            "接单"
+          ],
+          "keyRules": "待定",
+          "evidence": "INDUSTRY_PATTERN",
+          "externalizable": true,
+          "mvpTier": "LATER"
+        },
+        {
+          "id": "CAP-I05",
+          "name": "银行回单/支付",
+          "businessObjects": [
+            "回单"
+          ],
+          "keyActions": [
+            "导入",
+            "匹配"
+          ],
+          "keyRules": "待定",
+          "evidence": "INDUSTRY_PATTERN",
+          "externalizable": true,
+          "mvpTier": "LATER"
+        },
+        {
+          "id": "CAP-I06",
+          "name": "税务/电子发票",
+          "businessObjects": [
+            "发票"
+          ],
+          "keyActions": [
+            "开票",
+            "查验"
+          ],
+          "keyRules": "待定",
+          "evidence": "INDUSTRY_PATTERN",
+          "externalizable": true,
+          "mvpTier": "LATER"
+        }
+      ],
+      "analytics": [
+        {
+          "id": "CAP-A01",
+          "name": "库存余额与流水报表",
+          "businessObjects": [
+            "读模型"
+          ],
+          "keyActions": [
+            "查询"
+          ],
+          "keyRules": "与台账口径一致，不另造第二套口径",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "SHOULD_HAVE"
+        },
+        {
+          "id": "CAP-A02",
+          "name": "采购统计",
+          "businessObjects": [
+            "读模型"
+          ],
+          "keyActions": [
+            "查询"
+          ],
+          "keyRules": "不用几十张业务表实时 JOIN",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-A03",
+          "name": "销售统计",
+          "businessObjects": [
+            "读模型"
+          ],
+          "keyActions": [
+            "查询"
+          ],
+          "keyRules": "同上",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-A04",
+          "name": "应收账龄",
+          "businessObjects": [
+            "读模型"
+          ],
+          "keyActions": [
+            "查询"
+          ],
+          "keyRules": "账龄桶口径可配置",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-A05",
+          "name": "应付账龄",
+          "businessObjects": [
+            "读模型"
+          ],
+          "keyActions": [
+            "查询"
+          ],
+          "keyRules": "同上",
+          "evidence": "USER_REQUIREMENT",
+          "externalizable": false,
+          "mvpTier": "COULD_HAVE"
+        },
+        {
+          "id": "CAP-A06",
+          "name": "经营概览",
+          "businessObjects": [
+            "读模型"
+          ],
+          "keyActions": [
+            "查询"
+          ],
+          "keyRules": "指标定义须与单项报表一致",
+          "evidence": "INDUSTRY_PATTERN",
+          "externalizable": false,
+          "mvpTier": "LATER"
+        }
+      ]
+    },
+    "systemBoundary": {
+      "inScope": [
+        {
+          "item": "CAP-P01..P11 平台内核",
+          "trace": "BL-4/BL-5 与横跨 BL-1..BL-3",
+          "phase": "P1-P2",
+          "capability": "CAP-P07"
+        },
+        {
+          "item": "CAP-C01..C04 库存台账/流水/预占/批次",
+          "trace": "BL-1/BL-2/BL-3",
+          "phase": "P3",
+          "capability": "CAP-C01"
+        },
+        {
+          "item": "CAP-C05 采购订单履约",
+          "trace": "BL-1",
+          "phase": "P4",
+          "capability": "CAP-C05"
+        },
+        {
+          "item": "CAP-C06 销售订单履约",
+          "trace": "BL-2",
+          "phase": "P5",
+          "capability": "CAP-C06"
+        },
+        {
+          "item": "CAP-C07..C09 应付/应收/核销",
+          "trace": "BL-1/BL-2",
+          "phase": "P6",
+          "capability": "CAP-C09"
+        },
+        {
+          "item": "CAP-S01..S05,S09,S10 退货/调拨/盘点/调整/采购申请/计价",
+          "trace": "BL-1/BL-2/BL-3",
+          "phase": "P7",
+          "capability": "CAP-S03"
+        },
+        {
+          "item": "CAP-S06 信用额度",
+          "trace": "BL-2",
+          "phase": "P5",
+          "capability": "CAP-S06"
+        },
+        {
+          "item": "CAP-A01..A05 报表读模型",
+          "trace": "BL-6",
+          "phase": "P9",
+          "capability": "CAP-A01"
+        },
+        {
+          "item": "CAP-G04 导入导出",
+          "trace": "BL-4",
+          "phase": "P2",
+          "capability": "CAP-G04"
+        }
+      ],
+      "outOfScope": [
+        {
+          "item": "仓储作业执行（波次/拣货路径/上架推荐/PDA/序列号逐件追踪）",
+          "reason": "属于 WMS 领域，wms-platform 已实现且更深；ERP 重复实现会产生两个库存权威"
+        },
+        {
+          "item": "总账凭证/会计科目余额/会计期间/财务报表体系",
+          "reason": "提示词第八章明确第一阶段不要求完整专业财务软件"
+        },
+        {
+          "item": "生产制造 MES/BOM/工单、CRM 商机、HR 薪酬、固定资产",
+          "reason": "不在给定业务链路上，无能力追溯"
+        },
+        {
+          "item": "自建身份提供方",
+          "reason": "auth-platform 已提供 Casdoor + OIDC"
+        },
+        {
+          "item": "自建 BPMN 流程引擎",
+          "reason": "workflow-platform 已提供 Flowable 7.1.0"
+        },
+        {
+          "item": "跨境多语言与多法域税务合规",
+          "reason": "未在需求中出现"
+        }
+      ],
+      "futureScope": [
+        {
+          "item": "总账/凭证/会计期间/财务报表",
+          "trigger": "财务部门要求 ERP 出具法定账簿或需凭证级对接"
+        },
+        {
+          "item": "多币种与汇率折算",
+          "trigger": "出现第二个结算币种的真实交易"
+        },
+        {
+          "item": "FIFO/个别计价",
+          "trigger": "审计或行业要求特定计价方法（可从不可变流水重算）"
+        },
+        {
+          "item": "CAP-I03 WMS 对接",
+          "trigger": "单仓日作业量超过人工登记能力或引入 PDA/自动化设备"
+        },
+        {
+          "item": "CAP-I04 电商渠道接入",
+          "trigger": "出现线上销售渠道"
+        },
+        {
+          "item": "CAP-I05/I06 银行回单与电子发票",
+          "trigger": "收付款量使人工录入成为瓶颈或税务合规要求"
+        },
+        {
+          "item": "服务化拆分",
+          "trigger": "见 ARCHITECTURE_EVOLUTION Stage 3 的四个可观察触发条件"
+        },
+        {
+          "item": "Elasticsearch / Kafka / Redis",
+          "trigger": "见 TECH_SELECTION 各自的触发条件；当前均不引入"
+        }
+      ],
+      "externalDependencies": [
+        {
+          "system": "auth-platform / Casdoor",
+          "direction": "ERP→外",
+          "method": "OIDC 授权码 + auth-platform-sdk",
+          "failureImpact": "新登录不可用，已登录会话不受影响",
+          "fallback": "本地应急超管账号，全程审计"
+        },
+        {
+          "system": "dev-infra PostgreSQL 16",
+          "direction": "ERP→外",
+          "method": "JDBC",
+          "failureImpact": "系统不可用",
+          "fallback": "无（权威数据库）"
+        },
+        {
+          "system": "dev-infra MinIO",
+          "direction": "ERP→外",
+          "method": "S3 API",
+          "failureImpact": "附件不可用，单据主流程不受影响",
+          "fallback": "提示附件暂不可用"
+        },
+        {
+          "system": "workflow-platform",
+          "direction": "ERP↔外（P8）",
+          "method": "SDK REST + Kafka 契约",
+          "failureImpact": "可配置审批不可用",
+          "fallback": "回落内置顺序审批适配器"
+        },
+        {
+          "system": "wms-platform",
+          "direction": "ERP↔外（未来）",
+          "method": "端口预留",
+          "failureImpact": "不适用",
+          "fallback": "ERP 自管"
+        }
+      ]
+    },
+    "mvpScope": {
+      "mustHave": [
+        {
+          "capability": "CAP-P01",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "所有业务表的 tenant_id/company_id/org_path 来自它，后补等于改全部表"
+        },
+        {
+          "capability": "CAP-P02",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "判权的载体"
+        },
+        {
+          "capability": "CAP-P03",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "API 权限是唯一安全边界，不能上线前再加"
+        },
+        {
+          "capability": "CAP-P04",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "要下推成 SQL 条件，后补需重写所有查询"
+        },
+        {
+          "capability": "CAP-P05",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "没有 SKU/供应商/客户/仓库，任何单据都建不出来"
+        },
+        {
+          "capability": "CAP-P06",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "每张单据都要单据号"
+        },
+        {
+          "capability": "CAP-P07",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "采购/销售/库存单据共用同一机制，后补会让状态判断散落成 if/else"
+        },
+        {
+          "capability": "CAP-P08",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "闭环的定义就是可追溯，是本 ERP 的价值主张之一"
+        },
+        {
+          "capability": "CAP-P09",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "审计要拦截写入路径，后补代价极高（故从提示词 Phase 11 提前到 P1）"
+        },
+        {
+          "capability": "CAP-P10",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "采购与销售订单的 APPROVING 态需要它，用最简实现而非 BPMN 引擎"
+        },
+        {
+          "capability": "CAP-P11",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "超收比例与负库存策略是 CAP-C05 的守卫条件"
+        },
+        {
+          "capability": "CAP-C01",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "闭环核心"
+        },
+        {
+          "capability": "CAP-C02",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "没有它就没有可追溯性与对账能力"
+        },
+        {
+          "capability": "CAP-C03",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "销售闭环的库存占用环节"
+        },
+        {
+          "capability": "CAP-C04",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "批次是台账主键的一部分，后加维度等于全量数据迁移；MVP 只做维度与手工指批"
+        },
+        {
+          "capability": "CAP-C05",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "采购到付款闭环"
+        },
+        {
+          "capability": "CAP-C06",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "订单到收款闭环"
+        },
+        {
+          "capability": "CAP-C07",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "采购闭环终点"
+        },
+        {
+          "capability": "CAP-C08",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "销售闭环终点"
+        },
+        {
+          "capability": "CAP-C09",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "不核销则应收应付永远挂账，闭环不闭"
+        },
+        {
+          "capability": "CAP-G01",
+          "basis": [
+            "TECHNICAL_DEPENDENCY"
+          ],
+          "reason": "没有登录就没有 AccessContext"
+        }
+      ],
+      "shouldHave": [
+        {
+          "capability": "CAP-S09",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "企业内控通常要求，但可直接下采购订单，故紧随 MVP"
+        },
+        {
+          "capability": "CAP-S01",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "逆向链路，MVP 不含也能跑通但真实业务很快用到"
+        },
+        {
+          "capability": "CAP-S02",
+          "basis": [
+            "BUSINESS_LOOP"
+          ],
+          "reason": "同上"
+        },
+        {
+          "capability": "CAP-S03",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "多仓是需求，调拨是多仓的基本作业"
+        },
+        {
+          "capability": "CAP-S04",
+          "basis": [
+            "DELIVERY_RISK"
+          ],
+          "reason": "没有盘点则账实不符时没有合法纠正手段，只能改库，会破坏 INV-01"
+        },
+        {
+          "capability": "CAP-S05",
+          "basis": [
+            "DELIVERY_RISK"
+          ],
+          "reason": "同上"
+        },
+        {
+          "capability": "CAP-S06",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "销售订单审批的守卫条件之一"
+        },
+        {
+          "capability": "CAP-S10",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "成本口径影响流水字段，维度先留算法随后"
+        },
+        {
+          "capability": "CAP-G02",
+          "basis": [
+            "DELIVERY_RISK"
+          ],
+          "reason": "附件缺失会拖慢真实使用"
+        },
+        {
+          "capability": "CAP-G04",
+          "basis": [
+            "DELIVERY_RISK"
+          ],
+          "reason": "主数据无批量导入会让初始化人工成本拖慢验收"
+        },
+        {
+          "capability": "CAP-A01",
+          "basis": [
+            "DELIVERY_RISK"
+          ],
+          "reason": "对账要用，缺它则 INV-01 只能靠测试验证运营看不见"
+        }
+      ],
+      "couldHave": [
+        {
+          "capability": "CAP-S07",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "依赖已有往来账，属于增强"
+        },
+        {
+          "capability": "CAP-S08",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "依赖已有销售订单，属于增强"
+        },
+        {
+          "capability": "CAP-I02",
+          "basis": [
+            "DELIVERY_RISK"
+          ],
+          "reason": "推迟它能显著降低 MVP 交付风险，避免引入 Kafka 与跨系统最终一致"
+        },
+        {
+          "capability": "CAP-A02",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "需要先有真实数据才能谈口径"
+        },
+        {
+          "capability": "CAP-A03",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "同上"
+        },
+        {
+          "capability": "CAP-A04",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "同上"
+        },
+        {
+          "capability": "CAP-A05",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "同上"
+        },
+        {
+          "capability": "CAP-G03",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "审批待办的体验增强"
+        }
+      ],
+      "later": [
+        {
+          "capability": "CAP-A06",
+          "basis": [
+            "PRECEDENCE"
+          ],
+          "reason": "依赖全部单项报表口径先稳定"
+        },
+        {
+          "capability": "CAP-I03",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "见 Q-03，触发条件未出现"
+        },
+        {
+          "capability": "CAP-I04",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "无真实对接对象"
+        },
+        {
+          "capability": "CAP-I05",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "无真实对接对象"
+        },
+        {
+          "capability": "CAP-I06",
+          "basis": [
+            "BUSINESS_DEPENDENCY"
+          ],
+          "reason": "无真实对接对象"
+        }
+      ]
+    },
+    "roadmap": [
+      {
+        "phase": "P0 Foundation",
+        "goal": "能编译、能启动、能连库、能跑测试且模块边界被机器强制的空骨架",
+        "capabilities": [],
+        "dependencies": [],
+        "artifacts": [
+          "13 模块 Maven 骨架",
+          "工程基线八项约定",
+          "ArchUnit 规则",
+          "Flyway 基线",
+          "compose.yaml(仅 PostgreSQL)",
+          "ADR-001..004"
+        ],
+        "exitCriteria": [
+          "mvn -q verify 退出码 0",
+          "ArchUnit 负向用例：故意跨模块表访问后构建失败",
+          "docker compose up -d 后 /actuator/health 返回 UP",
+          "日志中可见 traceId",
+          "版本兼容核验结果写入 ADR"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P1 Platform Kernel",
+        "goal": "组织/权限/编号/单据模型/状态机/审计/单据图/审批端口全部可用",
+        "capabilities": [
+          "CAP-P01",
+          "CAP-P02",
+          "CAP-P03",
+          "CAP-P04",
+          "CAP-P06",
+          "CAP-P07",
+          "CAP-P08",
+          "CAP-P09",
+          "CAP-P10",
+          "CAP-P11",
+          "CAP-G01"
+        ],
+        "dependencies": [
+          "P0"
+        ],
+        "artifacts": [
+          "erp-kernel",
+          "erp-numbering",
+          "erp-iam",
+          "erp-approval",
+          "erp-document",
+          "Casdoor 接入",
+          "租户/数据权限拦截器",
+          "状态机框架",
+          "Outbox 框架"
+        ],
+        "exitCriteria": [
+          "OIDC 登录得到 AccessContext",
+          "无权限用户调 API 返回 403",
+          "A 部门用户看不到 B 部门单据且生成的 SQL 中确实出现 org_path 前缀条件",
+          "并发 50 线程取号无重复无空洞",
+          "非法状态迁移被拒且并发迁移只有一个成功",
+          "审计记录含前值/后值/IP/traceId",
+          "Outbox 投递失败可重试并进 DLQ"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P2 Master Data",
+        "goal": "主数据可维护且被单据引用后的修改规则生效",
+        "capabilities": [
+          "CAP-P05",
+          "CAP-G02",
+          "CAP-G04"
+        ],
+        "dependencies": [
+          "P1"
+        ],
+        "artifacts": [
+          "erp-masterdata",
+          "MasterDataRef 快照机制",
+          "MinIO 附件",
+          "导入导出"
+        ],
+        "exitCriteria": [
+          "编码在租户内唯一（并发建档只成功一条）",
+          "停用主数据不能被新单据引用且已有单据不受影响",
+          "改名后历史单据显示快照值",
+          "关键字段被引用后修改被拒",
+          "批量导入 1000 行校验失败整批回滚"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P3 Inventory Core",
+        "goal": "库存台账、流水、预占、批次可用；任何变化可追溯可对账",
+        "capabilities": [
+          "CAP-C01",
+          "CAP-C02",
+          "CAP-C03",
+          "CAP-C04",
+          "CAP-S05"
+        ],
+        "dependencies": [
+          "P2"
+        ],
+        "artifacts": [
+          "erp-inventory(六边形)",
+          "StockPostingService",
+          "AvailabilityCalculator",
+          "锁协议",
+          "对账脚本"
+        ],
+        "exitCriteria": [
+          "随机 1000 次过账后余额等于流水代数和",
+          "并发 50 线程扣同一桶无负库存无超卖",
+          "同一来源行过账 10 次只有一次效果",
+          "预占-部分消耗-释放数量链正确且释放不超额",
+          "每条流水可反查来源单据行",
+          "available 无对应数据库字段",
+          "对账脚本在 CI 中跑通"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P4 Procure to Receive",
+        "goal": "采购申请→审批→采购订单→收货→入库",
+        "capabilities": [
+          "CAP-C05",
+          "CAP-S09"
+        ],
+        "dependencies": [
+          "P3"
+        ],
+        "artifacts": [
+          "erp-procurement",
+          "采购状态机",
+          "超收策略"
+        ],
+        "exitCriteria": [
+          "E2E 分 3 次收货后库存增加量等于收货总量",
+          "超收超过配置比例被拒，放开后需审批通过",
+          "少收后可关闭剩余且已收部分保留",
+          "已收货订单不能取消",
+          "入库单与采购订单双向可追溯",
+          "重复提交收货单不产生二次入库"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P5 Order to Ship",
+        "goal": "销售订单→审批→预占→拣货→出库→发货→签收",
+        "capabilities": [
+          "CAP-C06",
+          "CAP-S06"
+        ],
+        "dependencies": [
+          "P3"
+        ],
+        "artifacts": [
+          "erp-sales",
+          "销售状态机",
+          "信用占用"
+        ],
+        "exitCriteria": [
+          "E2E 分 2 批出库后库存减少量等于出库总量且预占归零",
+          "库存不足时预占失败且订单停在 APPROVED",
+          "取消订单释放全部未消耗预占",
+          "信用超限被拦截且审批放行后可下单",
+          "部分出库后剩余量可继续出"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P6 AR/AP/Settlement",
+        "goal": "两条闭环闭合（MVP 达成）",
+        "capabilities": [
+          "CAP-C07",
+          "CAP-C08",
+          "CAP-C09"
+        ],
+        "dependencies": [
+          "P4",
+          "P5"
+        ],
+        "artifacts": [
+          "erp-finance",
+          "SettlementService",
+          "Outbox 消费者"
+        ],
+        "exitCriteria": [
+          "采购到付款全闭环 E2E 通过",
+          "订单到收款全闭环 E2E 通过",
+          "同一入库单事件投递 10 次只生成一张应付",
+          "超额付款/重复核销/超额核销被拒",
+          "反核销后金额回到核销前且有反向记录",
+          "Outbox 滞后 P95 不超过 60 秒",
+          "每笔应付应收可追溯到源头订单"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P7 逆向与内部库存业务",
+        "goal": "退货、调拨、盘点、报损报溢、计价",
+        "capabilities": [
+          "CAP-S01",
+          "CAP-S02",
+          "CAP-S03",
+          "CAP-S04",
+          "CAP-S05",
+          "CAP-S10"
+        ],
+        "dependencies": [
+          "P6"
+        ],
+        "artifacts": [
+          "退货单",
+          "调拨单(含在途)",
+          "盘点单",
+          "调整单",
+          "移动加权计价"
+        ],
+        "exitCriteria": [
+          "采购退货冲减应付且库存减少",
+          "销售退货入库冲减应收且需重新指定批次",
+          "调拨全流程后企业维度数量守恒",
+          "盘点差异必须审批后才落账",
+          "多次入库后移动加权成本与出库结转正确"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P8 Approval 升级(条件触发)",
+        "goal": "支持可配置审批流",
+        "capabilities": [
+          "CAP-I02"
+        ],
+        "dependencies": [
+          "P6"
+        ],
+        "artifacts": [
+          "WorkflowPlatformApprovalAdapter",
+          "Outbox→Kafka",
+          "Inbox",
+          "DLQ",
+          "对账脚本"
+        ],
+        "exitCriteria": [
+          "切换适配器后 P4/P5 审批 E2E 仍通过",
+          "引擎侧 202 已受理不在 UI 呈现为已完成",
+          "重复回执不产生二次业务效果",
+          "对账脚本能发现 ERP 与平台的实例差异"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P9 Reporting",
+        "goal": "报表走读模型",
+        "capabilities": [
+          "CAP-A01",
+          "CAP-A02",
+          "CAP-A03",
+          "CAP-A04",
+          "CAP-A05"
+        ],
+        "dependencies": [
+          "P6"
+        ],
+        "artifacts": [
+          "rpt_* 读模型",
+          "投影器",
+          "重建脚本"
+        ],
+        "exitCriteria": [
+          "库存余额报表与台账口径在同一时点数值相等",
+          "读模型可全量重建且结果一致",
+          "报表查询 P95 小于 1 秒",
+          "报表 SQL 中不出现业务表"
+        ],
+        "architectureStage": "Stage 1 → 触发时 Stage 2"
+      },
+      {
+        "phase": "P10 Observability 加固",
+        "goal": "可排障、可度量、可告警",
+        "capabilities": [],
+        "dependencies": [
+          "P6"
+        ],
+        "artifacts": [
+          "Micrometer 指标",
+          "慢查询日志",
+          "Outbox 积压指标",
+          "业务不变量指标",
+          "告警规则"
+        ],
+        "exitCriteria": [
+          "关键日志可按 tenantId/userId/businessType/businessId/documentNo/traceId 检索",
+          "库存守恒与 Outbox 积压有指标与告警阈值",
+          "告警指向可执行的处置步骤"
+        ],
+        "architectureStage": "Stage 1"
+      },
+      {
+        "phase": "P11 Integration/E2E/Deployment",
+        "goal": "一键起环境、一键灌数据、全链路 E2E 绿",
+        "capabilities": [],
+        "dependencies": [
+          "P7"
+        ],
+        "artifacts": [
+          "完整 compose.yaml",
+          "test-data/init-test-data.sh",
+          "E2E 套件",
+          "部署与运维文档"
+        ],
+        "exitCriteria": [
+          "docker compose up -d 后 5 分钟内全部健康",
+          "init-test-data.sh 可重复执行可清理可验证",
+          "Mock 数据全部入库且前端无硬编码（代码扫描证明）",
+          "E2E 覆盖两条闭环并在 CI 中绿",
+          "compose 中不包含未使用的中间件"
+        ],
+        "architectureStage": "Stage 1"
+      }
+    ],
+    "riskRegister": [
+      {
+        "id": "R-01",
+        "category": "REQUIREMENT",
+        "risk": "能力地图源自提示词模板而非真实干系人",
+        "trigger": "首次与真实用户评审 MVP",
+        "impact": "Core 上下文返工",
+        "mitigation": "MVP 只做 P2P/O2C 骨干，Supporting 到 P7 再按反馈展开",
+        "verification": "与干系人逐条走查 CAP-C01..C09 并记录确认/否决",
+        "phase": "P0 前"
+      },
+      {
+        "id": "R-02",
+        "category": "DOMAIN",
+        "risk": "统一单据模型被泛化成万能单据表",
+        "trigger": "出现名为 business_document 的通用表承载所有单据",
+        "impact": "领域规则退化为配置，不变量无处安放",
+        "mitigation": "机制统一、状态集合与表结构各自拥有；kernel 只提供基类与状态机机制",
+        "verification": "架构测试：不存在被 3 个以上模块共同写入的业务表",
+        "phase": "P1"
+      },
+      {
+        "id": "R-03",
+        "category": "ARCHITECTURE",
+        "risk": "为企业级过早拆服务或上中间件",
+        "trigger": "出现第二个可部署单元或新增 MQ/ES/Redis",
+        "impact": "一致性从本地事务退化为分布式问题",
+        "mitigation": "新增部署单元须先有可观察触发条件；新增组件须过 Complexity Budget",
+        "verification": "Gate G-03 逐期检查；compose 服务清单与 TECH_SELECTION 逐项比对",
+        "phase": "全程"
+      },
+      {
+        "id": "R-04",
+        "category": "DATA",
+        "risk": "库存桶主键维度选错（缺 batch 或 location）",
+        "trigger": "P3 之后需要新增台账维度",
+        "impact": "全量数据迁移加历史重算",
+        "mitigation": "MVP 就把 batch 与 location 放进唯一键，用非空哨兵占位",
+        "verification": "P3 Gate 查看 inv_inventory_balance 唯一索引含六个维度",
+        "phase": "P3"
+      },
+      {
+        "id": "R-05",
+        "category": "CONSISTENCY",
+        "risk": "单据过账与库存变动不在同一事务",
+        "trigger": "出现先更新单据再调库存的两段代码",
+        "impact": "INV-01 被破坏且无法自动发现",
+        "mitigation": "过账走单一入口 StockPostingService 与单据更新同事务；每日对账",
+        "verification": "INV-01 集成测试与对账脚本在 CI 中运行",
+        "phase": "P3-P6"
+      },
+      {
+        "id": "R-06",
+        "category": "SECURITY",
+        "risk": "数据权限只在 Controller 判定被绕过",
+        "trigger": "新增直接调用 Mapper 的查询路径",
+        "impact": "越权读取其他部门或公司数据",
+        "mitigation": "数据权限在持久层拦截器统一施加；ArchUnit 禁止 Controller→Mapper",
+        "verification": "P1 Gate 断言生成的 SQL 含 tenant_id 与 org_path 条件",
+        "phase": "P1"
+      },
+      {
+        "id": "R-07",
+        "category": "INTEGRATION",
+        "risk": "接入 workflow-platform 引入 Kafka 与跨系统最终一致拖累 MVP",
+        "trigger": "在 P6 之前启用 WorkflowPlatformApprovalAdapter",
+        "impact": "MVP 延期，新增 outbox/inbox/DLQ/对账四套机制",
+        "mitigation": "MVP 用内置顺序审批；接入推迟到 P8 且保留内置适配器回落",
+        "verification": "P8 Gate 切换适配器后 P4/P5 审批 E2E 仍绿",
+        "phase": "P8"
+      },
+      {
+        "id": "R-08",
+        "category": "PERFORMANCE",
+        "risk": "报表直接 JOIN 几十张业务表",
+        "trigger": "报表查询 P95 超过 3 秒或月末写入劣化",
+        "impact": "业务不可用",
+        "mitigation": "报表走 rpt_* 读模型；报表 SQL 不出现业务表",
+        "verification": "P9 Gate 报表 SQL 扫描无业务表前缀且 P95 达标",
+        "phase": "P9"
+      },
+      {
+        "id": "R-09",
+        "category": "OPERATIONAL",
+        "risk": "与 dev-infra 共享 PostgreSQL 隔离不当影响其他项目",
+        "trigger": "使用共享账号或未独立 database",
+        "impact": "其他项目受影响；误删共享卷",
+        "mitigation": "按 dev-infra 约定独立 database+owner+应用账号；禁止 docker compose down -v 作为日常停止方式",
+        "verification": "P0 Gate 连接串审查与运维文档写明禁令",
+        "phase": "P0"
+      },
+      {
+        "id": "R-10",
+        "category": "DELIVERY",
+        "risk": "一次推进 12 个阶段反馈周期过长",
+        "trigger": "连续两期没有可演示的闭环",
+        "impact": "方向偏差发现太晚",
+        "mitigation": "MVP 在 P6 闭合；P4/P5 并行；每期 Exit Criteria 都是可演示行为",
+        "verification": "每期结束有一次可运行演示",
+        "phase": "全程"
+      },
+      {
+        "id": "R-11",
+        "category": "OVER_ENGINEERING",
+        "risk": "统一单据模型/战术模式/缓存/MQ/分布式事务/微服务/端口七处过度设计",
+        "trigger": "出现万能单据表、给 Supporting 上下文建聚合、compose 出现 Redis 或 MQ、引入 Seata、拆出第二个进程",
+        "impact": "复杂度上升而收益为零，且难以回退",
+        "mitigation": "逐点写明过度设计的样子与阻止它的检查（见 RISK_REGISTER.md 专表）",
+        "verification": "每期 Gate G-03 按专表七项逐条检查",
+        "phase": "全程"
+      },
+      {
+        "id": "R-12",
+        "category": "DOMAIN",
+        "risk": "与 wms-platform 能力重叠出现两个库存权威",
+        "trigger": "在 ERP 里实现波次/拣货路径/序列号逐件追踪",
+        "impact": "重复投入且两套库存数据对不上",
+        "mitigation": "SYSTEM_BOUNDARY 划清：ERP 只做库存账，物理执行留 Port；MVP 不集成",
+        "verification": "每期 Gate G-03 检查是否出现 WMS 语义",
+        "phase": "全程"
+      },
+      {
+        "id": "R-13",
+        "category": "DATA",
+        "risk": "主数据修改后历史单据金额或名称变化",
+        "trigger": "单据行持有主数据外键而非快照",
+        "impact": "审计不可解释，对账失败",
+        "mitigation": "MasterDataRef 快照嵌入单据行，关键字段引用后冻结",
+        "verification": "P2 Gate 改名后历史单据显示快照值",
+        "phase": "P2"
+      },
+      {
+        "id": "R-14",
+        "category": "SECURITY",
+        "risk": "审计日志被应用账号篡改或删除",
+        "trigger": "应用账号拥有审计表 UPDATE/DELETE 权限",
+        "impact": "审计失去证明力",
+        "mitigation": "审计表只追加；数据库级 GRANT 收回 UPDATE/DELETE",
+        "verification": "P1 Gate 用应用账号尝试 UPDATE 审计表应失败",
+        "phase": "P1"
+      },
+      {
+        "id": "R-15",
+        "category": "DELIVERY",
+        "risk": "版本兼容未核验就开工",
+        "trigger": "P0 直接开始写代码",
+        "impact": "中途升级依赖返工",
+        "mitigation": "P0 第一个 ChangeSet 核验并写 ADR",
+        "verification": "P0 Gate ADR 中有核验结论与来源",
+        "phase": "P0"
+      }
+    ],
+    "assumptions": [
+      {
+        "id": "A-00",
+        "statement": "项目名 erp-platform，groupId com.lrj.erp",
+        "basis": "BUSINESS_ASSUMPTION：与同 Workspace 其他平台命名一致",
+        "impactIfWrong": "仅需改名，无架构影响",
+        "verification": "用户确认",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-01",
+        "statement": "目标问题是进销存与财务分散、账实不符、无法追溯",
+        "basis": "INDUSTRY_PATTERN",
+        "impactIfWrong": "能力地图 Core 需重排",
+        "verification": "与干系人访谈",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-02",
+        "statement": "定位为经营 System of Record，不承担仓储执行与法定账簿",
+        "basis": "ARCHITECTURE_PRINCIPLE",
+        "impactIfWrong": "若要求法定账簿需提前引入凭证与会计期间",
+        "verification": "用户确认",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-03",
+        "statement": "单租户 100-2000 用户，并发不超过 200",
+        "basis": "INDUSTRY_PATTERN",
+        "impactIfWrong": "万人级时判权需改为位图快照方案",
+        "verification": "统计在册员工数",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-04",
+        "statement": "日单据不超过 8000 头 / 50000 行",
+        "basis": "与 A-03 匹配",
+        "impactIfWrong": "10 倍时需提前读写分离与报表预聚合",
+        "verification": "统计旧系统单量",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-05",
+        "statement": "SKU 不超过 500000，库存桶不超过 2000000",
+        "basis": "INDUSTRY_PATTERN",
+        "impactIfWrong": "10 倍时余额表需分区",
+        "verification": "统计商品档案数",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-06",
+        "statement": "峰值倍数 5 倍",
+        "basis": "INDUSTRY_PATTERN",
+        "impactIfWrong": "峰值更高需入口限流",
+        "verification": "上线后观测",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-07",
+        "statement": "团队规模 1-5 人，无独立运维团队",
+        "basis": "BUSINESS_ASSUMPTION：该 Workspace 下 17 个项目均为单人主导",
+        "impactIfWrong": "多团队并行时才需考虑服务拆分",
+        "verification": "用户确认",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-08",
+        "statement": "MVP 单一本位币，币种字段预留但不做汇率折算",
+        "basis": "BUSINESS_ASSUMPTION",
+        "impactIfWrong": "多币种时补汇率表与折算规则，属加法变更",
+        "verification": "用户确认",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-09",
+        "statement": "库存计价采用移动加权平均",
+        "basis": "INDUSTRY_PATTERN",
+        "impactIfWrong": "需 FIFO 或个别计价时可从不可变流水重算，代价有界",
+        "verification": "与财务确认",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-10",
+        "statement": "多租户采用共享库加 tenant_id 列加强制过滤",
+        "basis": "与 A-03/A-04 规模匹配",
+        "impactIfWrong": "有数据驻留或隔离合规要求时需分库，tenant_id 已在故有迁移路径",
+        "verification": "确认合规要求",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-11",
+        "statement": "库位在 MVP 不启用，台账用哨兵 NO_LOCATION 占位",
+        "basis": "与 A-04 作业量匹配",
+        "impactIfWrong": "启用时不改主键，只填充维度值",
+        "verification": "确认是否有库位管理需求",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-12",
+        "statement": "MVP 审批为内置顺序审批，不接 BPMN 引擎",
+        "basis": "提示词第十一章不要过度引入复杂 BPM 平台",
+        "impactIfWrong": "需要会签/加签/转交时切换到 workflow-platform 适配器",
+        "verification": "收集真实审批场景",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-13",
+        "statement": "本地开发复用 dev-infra 的 PostgreSQL 16 共享实例，ERP 用独立 database 与账号",
+        "basis": "REPOSITORY_EVIDENCE：dev-infra/docs/service-catalog.md",
+        "impactIfWrong": "需隔离则改为项目专属实例",
+        "verification": "按 dev-infra onboarding 执行",
+        "tag": "ASSUMPTION"
+      },
+      {
+        "id": "A-14",
+        "statement": "应用端口 8500 与控制台 8501 未被占用",
+        "basis": "REPOSITORY_EVIDENCE：扫描 Workspace 全部 yml 与 compose，8500-8505 未出现",
+        "impactIfWrong": "冲突则顺延",
+        "verification": "启动时验证",
+        "tag": "ASSUMPTION"
+      }
+    ],
+    "openQuestions": [
+      {
+        "id": "Q-01",
+        "question": "主数据库用 PostgreSQL 16 还是 MySQL 8.4",
+        "affects": "存储选型与索引能力",
+        "safeAssumption": "PostgreSQL 16",
+        "revertCost": "Phase 0 内极低（尚无数据），P3 之后升高",
+        "priority": "HIGH",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-02",
+        "question": "库存是否需要库位级精度",
+        "affects": "库存台账主键维度",
+        "safeAssumption": "A-11 维度预留加哨兵",
+        "revertCost": "低（启用不改主键）",
+        "priority": "MEDIUM",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-03",
+        "question": "是否与 wms-platform 对接由 WMS 承担物理执行",
+        "affects": "系统边界与集成架构",
+        "safeAssumption": "MVP 自建库存账加 InventoryExecutionPort 预留",
+        "revertCost": "中（需设计过账回执协议）",
+        "priority": "MEDIUM",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-04",
+        "question": "多租户隔离要求（共享库/分库/数据驻留）",
+        "affects": "数据架构与合规",
+        "safeAssumption": "A-10 共享库加 tenant_id 强制过滤",
+        "revertCost": "中（可按租户迁库）",
+        "priority": "MEDIUM",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-05",
+        "question": "库存计价方法（移动加权平均/FIFO/个别计价）",
+        "affects": "库存价值与 COGS 模型",
+        "safeAssumption": "A-09 移动加权平均",
+        "revertCost": "有界——流水不可变，任何方法都可重算",
+        "priority": "MEDIUM",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-06",
+        "question": "是否需要多币种与汇率折算",
+        "affects": "金额值对象与财务模型",
+        "safeAssumption": "A-08 单本位币加币种字段预留",
+        "revertCost": "低（加法变更）",
+        "priority": "LOW",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-07",
+        "question": "团队规模与期望交付周期",
+        "affects": "Roadmap 周期与是否并行",
+        "safeAssumption": "A-07 1-5 人",
+        "revertCost": "无架构影响",
+        "priority": "LOW",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-08",
+        "question": "是否有真实的税务/发票/电子档案合规要求",
+        "affects": "是否进入 FUTURE_SCOPE",
+        "safeAssumption": "当前 OUT_OF_SCOPE",
+        "revertCost": "中",
+        "priority": "LOW",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-09",
+        "question": "超收是否允许及比例；负库存是否允许",
+        "affects": "采购与库存的业务规则",
+        "safeAssumption": "默认禁止，经 CAP-P11 配置放开",
+        "revertCost": "低（配置项）",
+        "priority": "MEDIUM",
+        "blocking": false,
+        "neededBy": "P4",
+        "tag": "OPEN_QUESTION"
+      },
+      {
+        "id": "Q-10",
+        "question": "RPO/RTO 的真实要求",
+        "affects": "备份与恢复方案",
+        "safeAssumption": "NFR-07 RPO 15 分钟 RTO 4 小时（ASSUMED）",
+        "revertCost": "低",
+        "priority": "LOW",
+        "blocking": false,
+        "tag": "OPEN_QUESTION"
+      }
+    ],
+    "unknowns": [
+      {
+        "id": "U-04",
+        "tag": "UNKNOWN",
+        "statement": "Runtime 的 resource-scope 策略不把 Maven 构建清单（pom.xml）归入任何可写动作（已实测 classify(pom.xml) -> None），因此 P0 骨架里的 pom 文件无法由 Driver 写出",
+        "evidence_required": "确认 Runtime 是否扩展可写路径以包含构建清单，或由人工执行一次性骨架创建后再把仓库交回 Runtime",
+        "affects_change_sets": [
+          "CS-M0-02"
+        ],
+        "exit_criteria": "得到明确答复，并在 ADR 中记录骨架创建方式；CS-M0-02 的 scope 相应调整"
+      }
+    ],
+    "buildBuyIntegrate": [
+      {
+        "capability": "CAP-G01 身份认证/SSO",
+        "decision": "REUSE_EXISTING",
+        "reason": "组织内 auth-platform 已运行 Casdoor 与 SDK",
+        "alternatives": [
+          "BUILD 自建",
+          "INTEGRATE Keycloak"
+        ],
+        "tradeoffs": "绑定 Casdoor 的 OIDC 行为；退出成本低（只依赖标准 OIDC）",
+        "constraints": "必须 ACL 隔离其 org/group 模型",
+        "risk": "R-06",
+        "evidence": "REPOSITORY_EVIDENCE auth-platform/README.md",
+        "stage": "P1"
+      },
+      {
+        "capability": "CAP-P03/P04 授权 RBAC 与数据权限",
+        "decision": "BUILD",
+        "reason": "结构化批量判权加数据权限 SQL 下推是 ERP 的内在能力",
+        "alternatives": [
+          "INTEGRATE SpiceDB via auth-platform"
+        ],
+        "tradeoffs": "自研判权引擎的维护成本；换远程 ReBAC 的退出成本高",
+        "constraints": "判权必须在服务端且可下推 SQL",
+        "risk": "R-06",
+        "evidence": "ARCHITECTURE_PRINCIPLE",
+        "stage": "P1"
+      },
+      {
+        "capability": "CAP-P10 审批引擎",
+        "decision": "BUILD",
+        "reason": "MVP 只需顺序审批，内置实现足够",
+        "alternatives": [
+          "INTEGRATE workflow-platform",
+          "BUILD 自建 BPMN（禁止）"
+        ],
+        "tradeoffs": "内置引擎在会签/并行场景会撞墙；切换需实现 outbox/inbox",
+        "constraints": "Port + Adapter 结构必须先在（P1）",
+        "risk": "R-07",
+        "evidence": "USER_REQUIREMENT 提示词第十一章",
+        "stage": "P1"
+      },
+      {
+        "capability": "CAP-I02 流程引擎本体",
+        "decision": "REUSE_EXISTING",
+        "reason": "Flowable 已由 workflow-platform 承载，不自建",
+        "alternatives": [
+          "BUILD 自建 BPMN"
+        ],
+        "tradeoffs": "引入 Kafka 与跨系统最终一致",
+        "constraints": "触发条件：出现真实会签或并行需求",
+        "risk": "R-07",
+        "evidence": "REPOSITORY_EVIDENCE workflow-platform/README.md",
+        "stage": "P8"
+      },
+      {
+        "capability": "CAP-G02 文件存储",
+        "decision": "REUSE_EXISTING",
+        "reason": "dev-infra MinIO",
+        "alternatives": [
+          "本地磁盘",
+          "云 OSS"
+        ],
+        "tradeoffs": "退出成本低（S3 协议）",
+        "constraints": "独立 bucket 与 access key",
+        "risk": "R-09",
+        "evidence": "REPOSITORY_EVIDENCE dev-infra/docs/service-catalog.md",
+        "stage": "P2"
+      },
+      {
+        "capability": "CAP-G03 通知",
+        "decision": "DEFER",
+        "reason": "暂无真实通知场景",
+        "alternatives": [],
+        "tradeoffs": "",
+        "constraints": "触发：审批待办需要外部推送",
+        "risk": "",
+        "evidence": "INDUSTRY_PATTERN",
+        "stage": "触发后"
+      },
+      {
+        "capability": "CAP-A06 BI/报表平台",
+        "decision": "DEFER",
+        "reason": "先用自建读模型验证口径",
+        "alternatives": [
+          "Metabase",
+          "Superset"
+        ],
+        "tradeoffs": "",
+        "constraints": "触发：非技术人员需要自助分析",
+        "risk": "R-08",
+        "evidence": "INDUSTRY_PATTERN",
+        "stage": "触发后"
+      },
+      {
+        "capability": "CAP-I03 仓储执行",
+        "decision": "DEFER",
+        "reason": "ERP 自管库存账已满足 MVP",
+        "alternatives": [
+          "INTEGRATE wms-platform"
+        ],
+        "tradeoffs": "两套库存权威的风险",
+        "constraints": "端口先在",
+        "risk": "R-12",
+        "evidence": "REPOSITORY_EVIDENCE wms-platform/docs/design/02-domain.md",
+        "stage": "见 Q-03"
+      },
+      {
+        "capability": "监控/日志平台",
+        "decision": "DEFER",
+        "reason": "MVP 用结构化日志与 health",
+        "alternatives": [
+          "dev-infra 可观测栈"
+        ],
+        "tradeoffs": "",
+        "constraints": "触发：多实例或 SLA 明确",
+        "risk": "",
+        "evidence": "TECHNICAL_CONSTRAINT",
+        "stage": "P10"
+      },
+      {
+        "capability": "CAP-I05/I06 支付银行与电子发票",
+        "decision": "DEFER",
+        "reason": "无合规与量级依据",
+        "alternatives": [],
+        "tradeoffs": "",
+        "constraints": "",
+        "risk": "",
+        "evidence": "INDUSTRY_PATTERN",
+        "stage": "FUTURE"
+      }
+    ],
+    "userConstraints": [
+      {
+        "id": "F-05",
+        "constraint": "多租户/多公司/多组织/多仓库/多用户/多角色，并具备模块化扩展能力",
+        "tradeoff": "租户与组织维度进入每张表与每个查询，增加持久层复杂度；用拦截器统一施加以避免散落",
+        "tag": "USER_CONSTRAINT"
+      },
+      {
+        "id": "F-07",
+        "constraint": "不得为使用微服务而微服务、为 MQ 而 MQ、为 DDD 而过度抽象",
+        "tradeoff": "无；与本方案的架构决策一致",
+        "tag": "USER_CONSTRAINT"
+      },
+      {
+        "id": "F-08",
+        "constraint": "库存不得用单一 stock 字段；状态不得用 if(status==1) 散落控制；必须有幂等、状态机、审计、单据关系",
+        "tradeoff": "MVP 复杂度高于最简 CRUD，但这些能力后补代价更高，故全部进 MUST_HAVE",
+        "tag": "USER_CONSTRAINT"
+      },
+      {
+        "id": "F-09",
+        "constraint": "建表必须写表与字段注释；后端代码写中文注释说明为什么；Mock 数据入库不写死页面；Docker 公共组件优先 dev-infra",
+        "tradeoff": "无；已写入 P0 基线与各期 Exit Criteria",
+        "tag": "USER_CONSTRAINT"
+      }
+    ]
+  },
+  "plannerHandoff": {
+    "targetProtocol": "execution-plan/v1",
+    "compile": "execution-plan-runtime.py handoff --report .engineering/bootstrap/PROJECT_BOOTSTRAP_REPORT.json",
+    "sourceRef": ".engineering/bootstrap/EXECUTION_PLAN_SOURCE.json",
+    "goal": {
+      "protocol": "engineering-goal/v1",
+      "goal_type": "INITIALIZE_PROJECT",
+      "desired_state": "READY",
+      "execution_mode": "PLAN_ONLY",
+      "description": "erp-platform：建立工程基线与可运行骨架（M0），随后按 M1-M6 抵达 MVP（两条完整业务闭环）"
+    },
+    "targetState": {
+      "desired_readiness": "READY",
+      "environment": null,
+      "verifiable": true,
+      "gates": [
+        "ARCHITECTURE",
+        "VALIDATION"
+      ],
+      "dimensions": {
+        "architecture": {
+          "analysis": "CURRENT",
+          "baseline": "CURRENT",
+          "lifecycle": "CURRENT"
+        },
+        "validation": {
+          "status": "PASS"
+        }
+      }
+    },
+    "planningGaps": [
+      {
+        "gap_id": "G-bootstrap",
+        "domain": "bootstrap",
+        "current": "PLANNED",
+        "target": "CURRENT/PASS",
+        "kind": "PLANNING_GAP",
+        "not_a_finding": true
+      },
+      {
+        "gap_id": "G-baseline",
+        "domain": "baseline",
+        "current": "MISSING",
+        "target": "CURRENT/PASS",
+        "kind": "PLANNING_GAP",
+        "not_a_finding": true
+      },
+      {
+        "gap_id": "G-product_lifecycle",
+        "domain": "product_lifecycle",
+        "current": "MISSING",
+        "target": "CURRENT/PASS",
+        "kind": "PLANNING_GAP",
+        "not_a_finding": true
+      }
+    ],
+    "notApplicable": [
+      {
+        "domain": "analysis",
+        "reason": "NO_REPOSITORY：ERP 自身尚无代码仓库，静态分析域不适用"
+      }
+    ],
+    "objectives": [
+      {
+        "id": "OBJ-BASELINE",
+        "milestones": [
+          "M0"
+        ]
+      },
+      {
+        "id": "OBJ-FEATURE",
+        "milestones": [
+          "M1",
+          "M2",
+          "M3",
+          "M4",
+          "M5",
+          "M6",
+          "M7",
+          "M8",
+          "M9"
+        ]
+      },
+      {
+        "id": "OBJ-VALIDATION",
+        "milestones": [
+          "M10",
+          "M11"
+        ]
+      }
+    ],
+    "executionPlanSource": {
+      "goal": "erp-platform：从工程基线到两条完整业务闭环（采购到付款、订单到收款）的企业级 ERP",
+      "scope": [
+        "erp-platform"
+      ],
+      "constraints": [
+        "GREENFIELD_PLANNING handoff；只有 M0 进入执行视野，后续里程碑到达时由 Runtime replan",
+        "未过 Gate 不得进入下一阶段；未跑过的检查写 UNVERIFIED，不得写 PASS",
+        "不新增未经 Complexity Budget 的中间件；不新增可部署单元"
+      ],
+      "acceptanceCriteria": [
+        "M0：mvn verify 绿、健康检查 UP、ArchUnit 负向用例证明规则生效",
+        "M6（MVP 达成）：采购到付款与订单到收款两条闭环 E2E 通过且单据可端到端追溯"
+      ],
+      "sourceArtifacts": [
+        "PROJECT_BOOTSTRAP_REPORT",
+        "BRIEF",
+        "BACKEND_ARCHITECTURE",
+        "TECH_SELECTION"
+      ],
+      "milestones": [
+        {
+          "milestoneId": "M0",
+          "name": "Foundation",
+          "goal": "工程基线与可运行骨架",
+          "objective": "OBJ-BASELINE",
+          "mvpClass": "MVP",
+          "acceptanceCriteria": [
+            "mvn verify 绿、健康检查 UP、ArchUnit 负向用例证明规则生效"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M0-WP1",
+              "name": "工程基线与骨架",
+              "goal": "建立基线、骨架、架构测试与运行时",
+              "acceptanceCriteria": [
+                "P0 Exit Criteria 五项全部可观察地满足"
+              ],
+              "changeSets": [
+                {
+                  "changeSetId": "CS-M0-01",
+                  "goal": "核验版本兼容并落地工程基线文档（编码/API/错误码/日志/事务/异常/数据库/幂等 八项约定）与 ADR-001..004",
+                  "changeType": "ANALYSIS",
+                  "scope": [
+                    "docs/**",
+                    ".engineering/**"
+                  ],
+                  "requiredCapabilities": [
+                    "read_repo",
+                    "write_design_docs"
+                  ],
+                  "dependencies": [],
+                  "acceptanceCriteria": [
+                    "八项工程约定各有一节且给出正例与反例",
+                    "ADR-001 数据库选型（含 Q-01 的答复）/ ADR-002 模块化单体 / ADR-003 审批端口可插拔 / ADR-004 库存台账维度 已写入",
+                    "Spring Boot 3.3.5、MyBatis-Plus、Flyway 与 PostgreSQL 16 的兼容结论有来源，未核验项写 UNVERIFIED"
+                  ],
+                  "riskClass": "NORMAL",
+                  "validationLevel": "FAST",
+                  "metadata": {
+                    "capabilityRefs": [
+                      "CAP-P07",
+                      "CAP-P09"
+                    ],
+                    "mvpClass": "MVP",
+                    "establishesGate": "engineering_baseline"
+                  }
+                },
+                {
+                  "changeSetId": "CS-M0-02",
+                  "goal": "建立 13 个 Maven 模块的空骨架与 erp-app 启动类、健康检查、结构化日志与 traceId",
+                  "changeType": "CONFIGURATION",
+                  "scope": [
+                    "erp-app/src/main/**",
+                    "erp-kernel/src/main/**",
+                    "erp-app/src/test/**"
+                  ],
+                  "requiredCapabilities": [
+                    "read_repo",
+                    "modify_product_code",
+                    "modify_tests",
+                    "execute_tests"
+                  ],
+                  "dependencies": [
+                    "CS-M0-01"
+                  ],
+                  "acceptanceCriteria": [
+                    "mvn verify 退出码为 0",
+                    "GET /actuator/health 返回 UP",
+                    "任意一条日志包含 traceId 字段"
+                  ],
+                  "riskClass": "NORMAL",
+                  "validationLevel": "FAST",
+                  "metadata": {
+                    "capabilityRefs": [
+                      "CAP-P07"
+                    ],
+                    "mvpClass": "MVP",
+                    "verify": {
+                      "command": "mvn -q -DskipITs verify",
+                      "covers": [
+                        "COMPILE",
+                        "UNIT_TEST"
+                      ],
+                      "timeout_seconds": 900
+                    }
+                  }
+                },
+                {
+                  "changeSetId": "CS-M0-03",
+                  "goal": "落地 ArchUnit 模块边界规则并用负向用例证明规则确实会拦截",
+                  "changeType": "TEST_PROTECTION",
+                  "scope": [
+                    "erp-app/src/test/**",
+                    "erp-kernel/src/test/**"
+                  ],
+                  "requiredCapabilities": [
+                    "read_repo",
+                    "modify_tests",
+                    "execute_tests"
+                  ],
+                  "dependencies": [
+                    "CS-M0-02"
+                  ],
+                  "acceptanceCriteria": [
+                    "七条架构不变量各有一条 ArchUnit 规则",
+                    "负向用例：故意加入跨模块表访问后构建失败（记录失败输出作为证据）",
+                    "Controller 依赖 Mapper 被规则拦截"
+                  ],
+                  "riskClass": "NORMAL",
+                  "validationLevel": "FAST",
+                  "metadata": {
+                    "capabilityRefs": [
+                      "CAP-P07"
+                    ],
+                    "mvpClass": "MVP",
+                    "verify": {
+                      "command": "mvn -q -Dtest=*ArchitectureTest test",
+                      "covers": [
+                        "COMPILE",
+                        "UNIT_TEST"
+                      ],
+                      "timeout_seconds": 600
+                    }
+                  }
+                },
+                {
+                  "changeSetId": "CS-M0-04",
+                  "goal": "建立运行时基线：仅含 PostgreSQL 的 compose、env 模板、Flyway 基线迁移（含表与字段注释）与启停脚本",
+                  "changeType": "CONFIGURATION",
+                  "scope": [
+                    "deploy/**",
+                    "scripts/**",
+                    "erp-app/src/main/**"
+                  ],
+                  "requiredCapabilities": [
+                    "read_repo",
+                    "modify_runtime_files",
+                    "modify_product_code",
+                    "modify_tests",
+                    "execute_tests"
+                  ],
+                  "dependencies": [
+                    "CS-M0-02"
+                  ],
+                  "acceptanceCriteria": [
+                    "docker compose up -d 后应用可连上 PostgreSQL 并通过健康检查",
+                    "compose 中只有 PostgreSQL，没有未使用的中间件",
+                    "首个 Flyway 迁移的每张表与每个字段都有 COMMENT",
+                    "使用独立 database 与应用账号，未使用 dev-infra 共享账号"
+                  ],
+                  "riskClass": "NORMAL",
+                  "validationLevel": "FAST",
+                  "metadata": {
+                    "capabilityRefs": [
+                      "CAP-P01"
+                    ],
+                    "mvpClass": "MVP",
+                    "verify": {
+                      "command": "mvn -q -DskipITs verify",
+                      "covers": [
+                        "COMPILE",
+                        "UNIT_TEST"
+                      ],
+                      "timeout_seconds": 900
+                    }
+                  }
+                }
+              ],
+              "mvpClass": "MVP"
+            }
+          ],
+          "requiredArtifacts": [
+            "BRIEF",
+            "BACKEND_ARCHITECTURE",
+            "TECH_SELECTION"
+          ]
+        },
+        {
+          "milestoneId": "M1",
+          "name": "Platform Kernel",
+          "goal": "组织/权限/编号/单据模型/状态机/审计/单据图/审批端口可用",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "MVP",
+          "acceptanceCriteria": [
+            "数据权限下推到 SQL 并被断言",
+            "并发取号无重复",
+            "非法状态迁移被拒且并发迁移只有一个成功",
+            "审计含前后值与 traceId"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M1-WP1",
+              "name": "身份与权限",
+              "goal": "Casdoor 接入、RBAC、数据权限拦截器",
+              "acceptanceCriteria": [
+                "无权限用户 403",
+                "A 部门用户看不到 B 部门单据且 SQL 含前缀条件"
+              ],
+              "changeSets": [],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M1-WP2",
+              "name": "平台机制",
+              "goal": "编号中心、统一单据模型与状态机、Outbox 框架",
+              "acceptanceCriteria": [
+                "并发 50 线程取号无重复无空洞",
+                "非法迁移抛领域异常"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M1-WP1"
+              ],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M1-WP3",
+              "name": "审计与单据图",
+              "goal": "审计 AOP、操作日志、单据关系登记",
+              "acceptanceCriteria": [
+                "审计表应用账号无法 UPDATE",
+                "单据关系可双向查询"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M1-WP2"
+              ],
+              "mvpClass": "MVP"
+            }
+          ],
+          "dependencies": [
+            "M0"
+          ]
+        },
+        {
+          "milestoneId": "M2",
+          "name": "Master Data",
+          "goal": "商品、往来单位、仓库结构、财务基础数据与引用后修改规则",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "MVP",
+          "acceptanceCriteria": [
+            "编码并发建档只成功一条",
+            "改名后历史单据显示快照值",
+            "关键字段被引用后修改被拒"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M2-WP1",
+              "name": "主数据中心",
+              "goal": "Product/Partner/Warehouse/FinanceRef 与 MasterDataRef 快照",
+              "acceptanceCriteria": [
+                "主数据被引用后的修改规则生效"
+              ],
+              "changeSets": [],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M2-WP2",
+              "name": "导入导出与附件",
+              "goal": "批量导入校验与 MinIO 附件",
+              "acceptanceCriteria": [
+                "1000 行导入校验失败整批回滚"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M2-WP1"
+              ],
+              "mvpClass": "POST_MVP"
+            }
+          ],
+          "dependencies": [
+            "M1"
+          ]
+        },
+        {
+          "milestoneId": "M3",
+          "name": "Inventory Core",
+          "goal": "库存台账、流水、预占、批次；任何变化可追溯可对账",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "MVP",
+          "acceptanceCriteria": [
+            "余额 == 流水代数和",
+            "并发扣减无负库存无超卖",
+            "同一来源行过账 10 次只有一次效果"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M3-WP1",
+              "name": "台账与流水",
+              "goal": "库存桶、不可变流水、过账服务与锁协议",
+              "acceptanceCriteria": [
+                "INV-01 / INV-02 / INV-04 由真实数据库集成测试证明"
+              ],
+              "changeSets": [],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M3-WP2",
+              "name": "预占与批次",
+              "goal": "预占/消耗/释放数量链与批次维度",
+              "acceptanceCriteria": [
+                "释放不超过未消耗量",
+                "available 无对应数据库字段"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M3-WP1"
+              ],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M3-WP3",
+              "name": "其他出入库与调整",
+              "goal": "其他入库/其他出库/库存调整与对账脚本",
+              "acceptanceCriteria": [
+                "对账脚本在 CI 中跑通"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M3-WP2"
+              ],
+              "mvpClass": "MVP"
+            }
+          ],
+          "dependencies": [
+            "M2"
+          ]
+        },
+        {
+          "milestoneId": "M4",
+          "name": "Procure to Receive",
+          "goal": "采购申请→审批→采购订单→收货→入库",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "MVP",
+          "acceptanceCriteria": [
+            "分 3 次收货后库存增加量等于收货总量",
+            "超收超限被拒",
+            "已收货订单不可取消只可关闭"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M4-WP1",
+              "name": "采购订单与审批",
+              "goal": "PR/PO 聚合与状态机、超收策略",
+              "acceptanceCriteria": [
+                "累计收货量不超过订单量乘以超收比例"
+              ],
+              "changeSets": [],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M4-WP2",
+              "name": "收货与入库过账",
+              "goal": "收货单、入库过账、单据关系登记",
+              "acceptanceCriteria": [
+                "从入库单可反查采购订单，反之亦然"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M4-WP1"
+              ],
+              "mvpClass": "MVP"
+            }
+          ],
+          "dependencies": [
+            "M3"
+          ]
+        },
+        {
+          "milestoneId": "M5",
+          "name": "Order to Ship",
+          "goal": "销售订单→审批→预占→拣货→出库→发货→签收",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "MVP",
+          "acceptanceCriteria": [
+            "分 2 批出库后库存减少量等于出库总量且预占归零",
+            "取消订单释放全部未消耗预占"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M5-WP1",
+              "name": "销售订单与信用",
+              "goal": "SO 聚合、状态机、信用占用与超限拦截",
+              "acceptanceCriteria": [
+                "信用超限被拦截，审批放行后可下单"
+              ],
+              "changeSets": [],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M5-WP2",
+              "name": "预占与出库发货",
+              "goal": "预占、拣货、出库过账、发货签收",
+              "acceptanceCriteria": [
+                "库存不足时预占失败且订单停在 APPROVED"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M5-WP1"
+              ],
+              "mvpClass": "MVP"
+            }
+          ],
+          "dependencies": [
+            "M3"
+          ]
+        },
+        {
+          "milestoneId": "M6",
+          "name": "AR / AP / Settlement",
+          "goal": "两条闭环闭合：入库→应付→付款→核销；出库→应收→收款→核销",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "MVP",
+          "acceptanceCriteria": [
+            "P2P 与 O2C 全闭环 E2E 通过",
+            "同一入库单事件投递 10 次只生成一张应付",
+            "超额付款与重复核销被拒",
+            "每笔应付应收可追溯到源头订单"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M6-WP1",
+              "name": "往来账生成",
+              "goal": "Outbox 消费者生成应付应收，源单唯一键幂等",
+              "acceptanceCriteria": [
+                "INV-06 由集成测试证明"
+              ],
+              "changeSets": [],
+              "mvpClass": "MVP"
+            },
+            {
+              "workPackageId": "M6-WP2",
+              "name": "收付款与核销",
+              "goal": "收款单、付款单、核销与反核销",
+              "acceptanceCriteria": [
+                "INV-07 由集成测试证明",
+                "反核销后金额回到核销前且有反向记录"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M6-WP1"
+              ],
+              "mvpClass": "MVP"
+            }
+          ],
+          "dependencies": [
+            "M4",
+            "M5"
+          ]
+        },
+        {
+          "milestoneId": "M7",
+          "name": "逆向与内部库存业务",
+          "goal": "退货、调拨、盘点、报损报溢、计价",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "POST_MVP",
+          "acceptanceCriteria": [
+            "调拨全流程后企业维度数量守恒",
+            "盘点差异必须审批后才落账"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M7-WP1",
+              "name": "退货链路",
+              "goal": "采购退货与销售退货及其往来账冲减",
+              "acceptanceCriteria": [
+                "退货入库需重新指定批次"
+              ],
+              "changeSets": [],
+              "mvpClass": "POST_MVP"
+            },
+            {
+              "workPackageId": "M7-WP2",
+              "name": "内部库存作业",
+              "goal": "调拨（含在途）、盘点、报损报溢、调整",
+              "acceptanceCriteria": [
+                "INV-08 由集成测试证明"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M7-WP1"
+              ],
+              "mvpClass": "POST_MVP"
+            },
+            {
+              "workPackageId": "M7-WP3",
+              "name": "库存计价",
+              "goal": "移动加权平均入库加权与出库结转",
+              "acceptanceCriteria": [
+                "多次入库后加权成本正确"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M7-WP2"
+              ],
+              "mvpClass": "POST_MVP"
+            }
+          ],
+          "dependencies": [
+            "M6"
+          ]
+        },
+        {
+          "milestoneId": "M8",
+          "name": "Approval 升级（条件触发）",
+          "goal": "接入 workflow-platform 支持会签/并行等可配置审批",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "POST_MVP",
+          "acceptanceCriteria": [
+            "切换适配器后 M4/M5 审批 E2E 仍通过",
+            "重复回执不产生二次业务效果",
+            "引擎侧 202 已受理不得在 UI 呈现为已完成"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M8-WP0",
+              "name": "触发条件确认",
+              "goal": "确认是否出现真实的会签或并行审批需求",
+              "acceptanceCriteria": [
+                "有真实场景清单，否则本里程碑不启动"
+              ],
+              "changeSets": [],
+              "mvpClass": "POST_MVP",
+              "type": "DISCOVERY"
+            },
+            {
+              "workPackageId": "M8-WP1",
+              "name": "WorkflowPlatform 适配器",
+              "goal": "SDK + Kafka outbox/inbox/DLQ 与对账",
+              "acceptanceCriteria": [
+                "对账脚本能发现 ERP 与平台的实例差异"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M8-WP0"
+              ],
+              "mvpClass": "POST_MVP"
+            }
+          ],
+          "dependencies": [
+            "M6"
+          ]
+        },
+        {
+          "milestoneId": "M9",
+          "name": "Reporting",
+          "goal": "报表走读模型，不实时 JOIN 业务表",
+          "objective": "OBJ-FEATURE",
+          "mvpClass": "POST_MVP",
+          "acceptanceCriteria": [
+            "库存余额报表与台账口径在同一时点数值相等",
+            "读模型可全量重建且结果一致",
+            "报表 SQL 不出现业务表"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M9-WP1",
+              "name": "读模型与投影",
+              "goal": "rpt_* 表、投影器与重建脚本",
+              "acceptanceCriteria": [
+                "重建后与权威数据一致"
+              ],
+              "changeSets": [],
+              "mvpClass": "POST_MVP"
+            },
+            {
+              "workPackageId": "M9-WP2",
+              "name": "报表接口",
+              "goal": "余额/流水/采购/销售/账龄",
+              "acceptanceCriteria": [
+                "报表查询 P95 小于 1 秒（种子数据规模下）"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M9-WP1"
+              ],
+              "mvpClass": "POST_MVP"
+            }
+          ],
+          "dependencies": [
+            "M6"
+          ]
+        },
+        {
+          "milestoneId": "M10",
+          "name": "Observability 加固",
+          "goal": "可排障、可度量、可告警",
+          "objective": "OBJ-VALIDATION",
+          "mvpClass": "POST_MVP",
+          "acceptanceCriteria": [
+            "关键日志可按 tenantId/userId/businessType/businessId/documentNo/traceId 检索",
+            "库存守恒与 Outbox 积压有指标与告警阈值"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M10-WP1",
+              "name": "指标与告警",
+              "goal": "Micrometer 指标、慢查询、业务不变量指标",
+              "acceptanceCriteria": [
+                "告警指向可执行的处置步骤"
+              ],
+              "changeSets": [],
+              "mvpClass": "POST_MVP"
+            }
+          ],
+          "dependencies": [
+            "M6"
+          ]
+        },
+        {
+          "milestoneId": "M11",
+          "name": "Integration / E2E / Deployment",
+          "goal": "一键起环境、一键灌数据、全链路 E2E 绿",
+          "objective": "OBJ-VALIDATION",
+          "mvpClass": "POST_MVP",
+          "acceptanceCriteria": [
+            "docker compose up -d 后全部健康",
+            "init-test-data.sh 可重复执行可清理可验证",
+            "Mock 数据全部入库且前端无硬编码",
+            "E2E 覆盖两条闭环并在 CI 中绿"
+          ],
+          "workPackages": [
+            {
+              "workPackageId": "M11-WP1",
+              "name": "全链路测试数据",
+              "goal": "覆盖租户到收付款的种子脚本",
+              "acceptanceCriteria": [
+                "脚本可重复执行且可清理"
+              ],
+              "changeSets": [],
+              "mvpClass": "POST_MVP"
+            },
+            {
+              "workPackageId": "M11-WP2",
+              "name": "E2E 与部署文档",
+              "goal": "E2E 套件、部署与运维文档",
+              "acceptanceCriteria": [
+                "CI 中 E2E 绿"
+              ],
+              "changeSets": [],
+              "dependencies": [
+                "M11-WP1"
+              ],
+              "mvpClass": "POST_MVP"
+            }
+          ],
+          "dependencies": [
+            "M7"
+          ]
+        }
+      ]
+    },
+    "stopAfterHandoff": true,
+    "executes": false
+  }
+}

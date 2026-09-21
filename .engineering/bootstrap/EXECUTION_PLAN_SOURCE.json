@@ -1,0 +1,673 @@
+{
+  "goal": "erp-platform：从工程基线到两条完整业务闭环（采购到付款、订单到收款）的企业级 ERP",
+  "scope": [
+    "erp-platform"
+  ],
+  "constraints": [
+    "GREENFIELD_PLANNING handoff；只有 M0 进入执行视野，后续里程碑到达时由 Runtime replan",
+    "未过 Gate 不得进入下一阶段；未跑过的检查写 UNVERIFIED，不得写 PASS",
+    "不新增未经 Complexity Budget 的中间件；不新增可部署单元"
+  ],
+  "acceptanceCriteria": [
+    "M0：mvn verify 绿、健康检查 UP、ArchUnit 负向用例证明规则生效",
+    "M6（MVP 达成）：采购到付款与订单到收款两条闭环 E2E 通过且单据可端到端追溯"
+  ],
+  "sourceArtifacts": [
+    "PROJECT_BOOTSTRAP_REPORT",
+    "BRIEF",
+    "BACKEND_ARCHITECTURE",
+    "TECH_SELECTION"
+  ],
+  "milestones": [
+    {
+      "milestoneId": "M0",
+      "name": "Foundation",
+      "goal": "工程基线与可运行骨架",
+      "objective": "OBJ-BASELINE",
+      "mvpClass": "MVP",
+      "acceptanceCriteria": [
+        "mvn verify 绿、健康检查 UP、ArchUnit 负向用例证明规则生效"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M0-WP1",
+          "name": "工程基线与骨架",
+          "goal": "建立基线、骨架、架构测试与运行时",
+          "acceptanceCriteria": [
+            "P0 Exit Criteria 五项全部可观察地满足"
+          ],
+          "changeSets": [
+            {
+              "changeSetId": "CS-M0-01",
+              "goal": "核验版本兼容并落地工程基线文档（编码/API/错误码/日志/事务/异常/数据库/幂等 八项约定）与 ADR-001..004",
+              "changeType": "ANALYSIS",
+              "scope": [
+                "docs/**",
+                ".engineering/**"
+              ],
+              "requiredCapabilities": [
+                "read_repo",
+                "write_design_docs"
+              ],
+              "dependencies": [],
+              "acceptanceCriteria": [
+                "八项工程约定各有一节且给出正例与反例",
+                "ADR-001 数据库选型（含 Q-01 的答复）/ ADR-002 模块化单体 / ADR-003 审批端口可插拔 / ADR-004 库存台账维度 已写入",
+                "Spring Boot 3.3.5、MyBatis-Plus、Flyway 与 PostgreSQL 16 的兼容结论有来源，未核验项写 UNVERIFIED"
+              ],
+              "riskClass": "NORMAL",
+              "validationLevel": "FAST",
+              "metadata": {
+                "capabilityRefs": [
+                  "CAP-P07",
+                  "CAP-P09"
+                ],
+                "mvpClass": "MVP",
+                "establishesGate": "engineering_baseline"
+              }
+            },
+            {
+              "changeSetId": "CS-M0-02",
+              "goal": "建立 13 个 Maven 模块的空骨架与 erp-app 启动类、健康检查、结构化日志与 traceId",
+              "changeType": "CONFIGURATION",
+              "scope": [
+                "erp-app/src/main/**",
+                "erp-kernel/src/main/**",
+                "erp-app/src/test/**"
+              ],
+              "requiredCapabilities": [
+                "read_repo",
+                "modify_product_code",
+                "modify_tests",
+                "execute_tests"
+              ],
+              "dependencies": [
+                "CS-M0-01"
+              ],
+              "acceptanceCriteria": [
+                "mvn verify 退出码为 0",
+                "GET /actuator/health 返回 UP",
+                "任意一条日志包含 traceId 字段"
+              ],
+              "riskClass": "NORMAL",
+              "validationLevel": "FAST",
+              "metadata": {
+                "capabilityRefs": [
+                  "CAP-P07"
+                ],
+                "mvpClass": "MVP",
+                "verify": {
+                  "command": "mvn -q -DskipITs verify",
+                  "covers": [
+                    "COMPILE",
+                    "UNIT_TEST"
+                  ],
+                  "timeout_seconds": 900
+                }
+              }
+            },
+            {
+              "changeSetId": "CS-M0-03",
+              "goal": "落地 ArchUnit 模块边界规则并用负向用例证明规则确实会拦截",
+              "changeType": "TEST_PROTECTION",
+              "scope": [
+                "erp-app/src/test/**",
+                "erp-kernel/src/test/**"
+              ],
+              "requiredCapabilities": [
+                "read_repo",
+                "modify_tests",
+                "execute_tests"
+              ],
+              "dependencies": [
+                "CS-M0-02"
+              ],
+              "acceptanceCriteria": [
+                "七条架构不变量各有一条 ArchUnit 规则",
+                "负向用例：故意加入跨模块表访问后构建失败（记录失败输出作为证据）",
+                "Controller 依赖 Mapper 被规则拦截"
+              ],
+              "riskClass": "NORMAL",
+              "validationLevel": "FAST",
+              "metadata": {
+                "capabilityRefs": [
+                  "CAP-P07"
+                ],
+                "mvpClass": "MVP",
+                "verify": {
+                  "command": "mvn -q -Dtest=*ArchitectureTest test",
+                  "covers": [
+                    "COMPILE",
+                    "UNIT_TEST"
+                  ],
+                  "timeout_seconds": 600
+                }
+              }
+            },
+            {
+              "changeSetId": "CS-M0-04",
+              "goal": "建立运行时基线：仅含 PostgreSQL 的 compose、env 模板、Flyway 基线迁移（含表与字段注释）与启停脚本",
+              "changeType": "CONFIGURATION",
+              "scope": [
+                "deploy/**",
+                "scripts/**",
+                "erp-app/src/main/**"
+              ],
+              "requiredCapabilities": [
+                "read_repo",
+                "modify_runtime_files",
+                "modify_product_code",
+                "modify_tests",
+                "execute_tests"
+              ],
+              "dependencies": [
+                "CS-M0-02"
+              ],
+              "acceptanceCriteria": [
+                "docker compose up -d 后应用可连上 PostgreSQL 并通过健康检查",
+                "compose 中只有 PostgreSQL，没有未使用的中间件",
+                "首个 Flyway 迁移的每张表与每个字段都有 COMMENT",
+                "使用独立 database 与应用账号，未使用 dev-infra 共享账号"
+              ],
+              "riskClass": "NORMAL",
+              "validationLevel": "FAST",
+              "metadata": {
+                "capabilityRefs": [
+                  "CAP-P01"
+                ],
+                "mvpClass": "MVP",
+                "verify": {
+                  "command": "mvn -q -DskipITs verify",
+                  "covers": [
+                    "COMPILE",
+                    "UNIT_TEST"
+                  ],
+                  "timeout_seconds": 900
+                }
+              }
+            }
+          ],
+          "mvpClass": "MVP"
+        }
+      ],
+      "requiredArtifacts": [
+        "BRIEF",
+        "BACKEND_ARCHITECTURE",
+        "TECH_SELECTION"
+      ]
+    },
+    {
+      "milestoneId": "M1",
+      "name": "Platform Kernel",
+      "goal": "组织/权限/编号/单据模型/状态机/审计/单据图/审批端口可用",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "MVP",
+      "acceptanceCriteria": [
+        "数据权限下推到 SQL 并被断言",
+        "并发取号无重复",
+        "非法状态迁移被拒且并发迁移只有一个成功",
+        "审计含前后值与 traceId"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M1-WP1",
+          "name": "身份与权限",
+          "goal": "Casdoor 接入、RBAC、数据权限拦截器",
+          "acceptanceCriteria": [
+            "无权限用户 403",
+            "A 部门用户看不到 B 部门单据且 SQL 含前缀条件"
+          ],
+          "changeSets": [],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M1-WP2",
+          "name": "平台机制",
+          "goal": "编号中心、统一单据模型与状态机、Outbox 框架",
+          "acceptanceCriteria": [
+            "并发 50 线程取号无重复无空洞",
+            "非法迁移抛领域异常"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M1-WP1"
+          ],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M1-WP3",
+          "name": "审计与单据图",
+          "goal": "审计 AOP、操作日志、单据关系登记",
+          "acceptanceCriteria": [
+            "审计表应用账号无法 UPDATE",
+            "单据关系可双向查询"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M1-WP2"
+          ],
+          "mvpClass": "MVP"
+        }
+      ],
+      "dependencies": [
+        "M0"
+      ]
+    },
+    {
+      "milestoneId": "M2",
+      "name": "Master Data",
+      "goal": "商品、往来单位、仓库结构、财务基础数据与引用后修改规则",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "MVP",
+      "acceptanceCriteria": [
+        "编码并发建档只成功一条",
+        "改名后历史单据显示快照值",
+        "关键字段被引用后修改被拒"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M2-WP1",
+          "name": "主数据中心",
+          "goal": "Product/Partner/Warehouse/FinanceRef 与 MasterDataRef 快照",
+          "acceptanceCriteria": [
+            "主数据被引用后的修改规则生效"
+          ],
+          "changeSets": [],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M2-WP2",
+          "name": "导入导出与附件",
+          "goal": "批量导入校验与 MinIO 附件",
+          "acceptanceCriteria": [
+            "1000 行导入校验失败整批回滚"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M2-WP1"
+          ],
+          "mvpClass": "POST_MVP"
+        }
+      ],
+      "dependencies": [
+        "M1"
+      ]
+    },
+    {
+      "milestoneId": "M3",
+      "name": "Inventory Core",
+      "goal": "库存台账、流水、预占、批次；任何变化可追溯可对账",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "MVP",
+      "acceptanceCriteria": [
+        "余额 == 流水代数和",
+        "并发扣减无负库存无超卖",
+        "同一来源行过账 10 次只有一次效果"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M3-WP1",
+          "name": "台账与流水",
+          "goal": "库存桶、不可变流水、过账服务与锁协议",
+          "acceptanceCriteria": [
+            "INV-01 / INV-02 / INV-04 由真实数据库集成测试证明"
+          ],
+          "changeSets": [],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M3-WP2",
+          "name": "预占与批次",
+          "goal": "预占/消耗/释放数量链与批次维度",
+          "acceptanceCriteria": [
+            "释放不超过未消耗量",
+            "available 无对应数据库字段"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M3-WP1"
+          ],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M3-WP3",
+          "name": "其他出入库与调整",
+          "goal": "其他入库/其他出库/库存调整与对账脚本",
+          "acceptanceCriteria": [
+            "对账脚本在 CI 中跑通"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M3-WP2"
+          ],
+          "mvpClass": "MVP"
+        }
+      ],
+      "dependencies": [
+        "M2"
+      ]
+    },
+    {
+      "milestoneId": "M4",
+      "name": "Procure to Receive",
+      "goal": "采购申请→审批→采购订单→收货→入库",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "MVP",
+      "acceptanceCriteria": [
+        "分 3 次收货后库存增加量等于收货总量",
+        "超收超限被拒",
+        "已收货订单不可取消只可关闭"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M4-WP1",
+          "name": "采购订单与审批",
+          "goal": "PR/PO 聚合与状态机、超收策略",
+          "acceptanceCriteria": [
+            "累计收货量不超过订单量乘以超收比例"
+          ],
+          "changeSets": [],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M4-WP2",
+          "name": "收货与入库过账",
+          "goal": "收货单、入库过账、单据关系登记",
+          "acceptanceCriteria": [
+            "从入库单可反查采购订单，反之亦然"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M4-WP1"
+          ],
+          "mvpClass": "MVP"
+        }
+      ],
+      "dependencies": [
+        "M3"
+      ]
+    },
+    {
+      "milestoneId": "M5",
+      "name": "Order to Ship",
+      "goal": "销售订单→审批→预占→拣货→出库→发货→签收",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "MVP",
+      "acceptanceCriteria": [
+        "分 2 批出库后库存减少量等于出库总量且预占归零",
+        "取消订单释放全部未消耗预占"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M5-WP1",
+          "name": "销售订单与信用",
+          "goal": "SO 聚合、状态机、信用占用与超限拦截",
+          "acceptanceCriteria": [
+            "信用超限被拦截，审批放行后可下单"
+          ],
+          "changeSets": [],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M5-WP2",
+          "name": "预占与出库发货",
+          "goal": "预占、拣货、出库过账、发货签收",
+          "acceptanceCriteria": [
+            "库存不足时预占失败且订单停在 APPROVED"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M5-WP1"
+          ],
+          "mvpClass": "MVP"
+        }
+      ],
+      "dependencies": [
+        "M3"
+      ]
+    },
+    {
+      "milestoneId": "M6",
+      "name": "AR / AP / Settlement",
+      "goal": "两条闭环闭合：入库→应付→付款→核销；出库→应收→收款→核销",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "MVP",
+      "acceptanceCriteria": [
+        "P2P 与 O2C 全闭环 E2E 通过",
+        "同一入库单事件投递 10 次只生成一张应付",
+        "超额付款与重复核销被拒",
+        "每笔应付应收可追溯到源头订单"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M6-WP1",
+          "name": "往来账生成",
+          "goal": "Outbox 消费者生成应付应收，源单唯一键幂等",
+          "acceptanceCriteria": [
+            "INV-06 由集成测试证明"
+          ],
+          "changeSets": [],
+          "mvpClass": "MVP"
+        },
+        {
+          "workPackageId": "M6-WP2",
+          "name": "收付款与核销",
+          "goal": "收款单、付款单、核销与反核销",
+          "acceptanceCriteria": [
+            "INV-07 由集成测试证明",
+            "反核销后金额回到核销前且有反向记录"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M6-WP1"
+          ],
+          "mvpClass": "MVP"
+        }
+      ],
+      "dependencies": [
+        "M4",
+        "M5"
+      ]
+    },
+    {
+      "milestoneId": "M7",
+      "name": "逆向与内部库存业务",
+      "goal": "退货、调拨、盘点、报损报溢、计价",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "POST_MVP",
+      "acceptanceCriteria": [
+        "调拨全流程后企业维度数量守恒",
+        "盘点差异必须审批后才落账"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M7-WP1",
+          "name": "退货链路",
+          "goal": "采购退货与销售退货及其往来账冲减",
+          "acceptanceCriteria": [
+            "退货入库需重新指定批次"
+          ],
+          "changeSets": [],
+          "mvpClass": "POST_MVP"
+        },
+        {
+          "workPackageId": "M7-WP2",
+          "name": "内部库存作业",
+          "goal": "调拨（含在途）、盘点、报损报溢、调整",
+          "acceptanceCriteria": [
+            "INV-08 由集成测试证明"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M7-WP1"
+          ],
+          "mvpClass": "POST_MVP"
+        },
+        {
+          "workPackageId": "M7-WP3",
+          "name": "库存计价",
+          "goal": "移动加权平均入库加权与出库结转",
+          "acceptanceCriteria": [
+            "多次入库后加权成本正确"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M7-WP2"
+          ],
+          "mvpClass": "POST_MVP"
+        }
+      ],
+      "dependencies": [
+        "M6"
+      ]
+    },
+    {
+      "milestoneId": "M8",
+      "name": "Approval 升级（条件触发）",
+      "goal": "接入 workflow-platform 支持会签/并行等可配置审批",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "POST_MVP",
+      "acceptanceCriteria": [
+        "切换适配器后 M4/M5 审批 E2E 仍通过",
+        "重复回执不产生二次业务效果",
+        "引擎侧 202 已受理不得在 UI 呈现为已完成"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M8-WP0",
+          "name": "触发条件确认",
+          "goal": "确认是否出现真实的会签或并行审批需求",
+          "acceptanceCriteria": [
+            "有真实场景清单，否则本里程碑不启动"
+          ],
+          "changeSets": [],
+          "mvpClass": "POST_MVP",
+          "type": "DISCOVERY"
+        },
+        {
+          "workPackageId": "M8-WP1",
+          "name": "WorkflowPlatform 适配器",
+          "goal": "SDK + Kafka outbox/inbox/DLQ 与对账",
+          "acceptanceCriteria": [
+            "对账脚本能发现 ERP 与平台的实例差异"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M8-WP0"
+          ],
+          "mvpClass": "POST_MVP"
+        }
+      ],
+      "dependencies": [
+        "M6"
+      ]
+    },
+    {
+      "milestoneId": "M9",
+      "name": "Reporting",
+      "goal": "报表走读模型，不实时 JOIN 业务表",
+      "objective": "OBJ-FEATURE",
+      "mvpClass": "POST_MVP",
+      "acceptanceCriteria": [
+        "库存余额报表与台账口径在同一时点数值相等",
+        "读模型可全量重建且结果一致",
+        "报表 SQL 不出现业务表"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M9-WP1",
+          "name": "读模型与投影",
+          "goal": "rpt_* 表、投影器与重建脚本",
+          "acceptanceCriteria": [
+            "重建后与权威数据一致"
+          ],
+          "changeSets": [],
+          "mvpClass": "POST_MVP"
+        },
+        {
+          "workPackageId": "M9-WP2",
+          "name": "报表接口",
+          "goal": "余额/流水/采购/销售/账龄",
+          "acceptanceCriteria": [
+            "报表查询 P95 小于 1 秒（种子数据规模下）"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M9-WP1"
+          ],
+          "mvpClass": "POST_MVP"
+        }
+      ],
+      "dependencies": [
+        "M6"
+      ]
+    },
+    {
+      "milestoneId": "M10",
+      "name": "Observability 加固",
+      "goal": "可排障、可度量、可告警",
+      "objective": "OBJ-VALIDATION",
+      "mvpClass": "POST_MVP",
+      "acceptanceCriteria": [
+        "关键日志可按 tenantId/userId/businessType/businessId/documentNo/traceId 检索",
+        "库存守恒与 Outbox 积压有指标与告警阈值"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M10-WP1",
+          "name": "指标与告警",
+          "goal": "Micrometer 指标、慢查询、业务不变量指标",
+          "acceptanceCriteria": [
+            "告警指向可执行的处置步骤"
+          ],
+          "changeSets": [],
+          "mvpClass": "POST_MVP"
+        }
+      ],
+      "dependencies": [
+        "M6"
+      ]
+    },
+    {
+      "milestoneId": "M11",
+      "name": "Integration / E2E / Deployment",
+      "goal": "一键起环境、一键灌数据、全链路 E2E 绿",
+      "objective": "OBJ-VALIDATION",
+      "mvpClass": "POST_MVP",
+      "acceptanceCriteria": [
+        "docker compose up -d 后全部健康",
+        "init-test-data.sh 可重复执行可清理可验证",
+        "Mock 数据全部入库且前端无硬编码",
+        "E2E 覆盖两条闭环并在 CI 中绿"
+      ],
+      "workPackages": [
+        {
+          "workPackageId": "M11-WP1",
+          "name": "全链路测试数据",
+          "goal": "覆盖租户到收付款的种子脚本",
+          "acceptanceCriteria": [
+            "脚本可重复执行且可清理"
+          ],
+          "changeSets": [],
+          "mvpClass": "POST_MVP"
+        },
+        {
+          "workPackageId": "M11-WP2",
+          "name": "E2E 与部署文档",
+          "goal": "E2E 套件、部署与运维文档",
+          "acceptanceCriteria": [
+            "CI 中 E2E 绿"
+          ],
+          "changeSets": [],
+          "dependencies": [
+            "M11-WP1"
+          ],
+          "mvpClass": "POST_MVP"
+        }
+      ],
+      "dependencies": [
+        "M7"
+      ]
+    }
+  ]
+}

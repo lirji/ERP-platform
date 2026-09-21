@@ -1,0 +1,21 @@
+# Build output
+target/
+build/
+dist/
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Node
+node_modules/
+.vite/
+
+# Local runtime
+.env
+*.log
