@@ -28,16 +28,17 @@
 
 ## 2. API 约定
 
-- 风格 REST + JSON，路径 `/api/{context}/{resource}`，如 `/api/inventory/balances`。
+- 风格 REST + JSON，路径 `/api/v1/{context}/{resource}`，如 `/api/v1/inventory/balances`。
+  **版本始终显式**（P1.1 契约修正了本条早先的「v1 隐式」写法，理由见 `contracts/CONTRACTS.md` §1.1）。
 - 复数资源名、小写连字符；动作类用例用子资源表达：`POST /api/purchase/orders/{id}/approve`。
 - 统一响应包装：成功返回数据本体；失败返回统一错误结构（见 §3）。
 - 分页统一 `page`（从 1 起）、`size`（上限 200，超出即 400）、返回 `total`。**排序字段走服务端允许列表**，禁止把用户原始输入拼进 ORDER BY（开发规范 §7）。
 - 所有写操作接口必须声明幂等语义（见 §8）。
-- 版本策略：破坏性变更走新路径 `/api/v2/...`；字段新增视为兼容变更。
+- 版本策略与兼容规则以 [`contracts/CONTRACTS.md`](../contracts/CONTRACTS.md) §1.2 为准（本文件不重复维护，避免两处事实）。
 
 ## 3. 错误码约定
 
-- 结构：`ERP-{CONTEXT}-{NNNN}`，如 `ERP-INV-1001`（库存不足）、`ERP-PUR-2003`（超收超出允许比例）。
+- 结构：`ERP-{CONTEXT}-{NNNN}`。**完整错误码表见 [`contracts/ERROR_CODES.md`](../contracts/ERROR_CODES.md)**（单一事实源）。
 - 错误响应体：
   ```json
   { "code": "ERP-INV-1001", "message": "可用库存不足", "traceId": "...", "details": {} }

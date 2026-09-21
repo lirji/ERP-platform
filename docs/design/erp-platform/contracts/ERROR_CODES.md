@@ -1,0 +1,91 @@
+# ERROR CODES
+
+> Owner: `public-engineering-workflow:contracts` · 状态 `ACTIVE`
+> 结构：`ERP-{CONTEXT}-{NNNN}`。**错误码一经发布，语义不可更改**；废弃走新增 + 标注。
+> 编号段：`0001-0999` 系统级 · `1000-1999` 校验 · `2000-2999` 状态/冲突 · `3000-3999` 业务规则 · `4000-4999` 权限
+
+## 使用规则
+
+1. 每个错误码**唯一对应一种可区分的失败原因**。"操作失败"这类笼统码不允许存在——它让调用方无法编程处理。
+2. `message` 面向最终用户，**不含**表名、SQL、类名、堆栈。
+3. 需要调用方编程处理的信息放 `details`，不要让对方解析 `message`。
+4. P1 只定义平台内核用到的码；各业务上下文的码在其所属 Phase 定义，段位已预留。
+
+---
+
+## SYS — 系统级（`ERP-SYS-*`）
+
+| Code | HTTP | 含义 | details |
+|---|---|---|---|
+| `ERP-SYS-0001` | 500 | 未预期的系统异常 | — （**禁止**回传堆栈） |
+| `ERP-SYS-0002` | 500 | 数据库连接获取超时 | — |
+| `ERP-SYS-0003` | 500 | 数据库语句超时 | — |
+| `ERP-SYS-0004` | 502 | 外部系统不可用 | `{ "system": "casdoor" }` |
+| `ERP-SYS-0005` | 409 | 并发冲突（乐观锁版本不匹配） | `{ "entity": "...", "id": "..." }` |
+| `ERP-SYS-0006` | 409 | 唯一约束冲突 | `{ "field": "code", "value": "..." }` |
+| `ERP-SYS-0007` | 400 | 请求体格式错误（JSON 解析失败） | — |
+| `ERP-SYS-0008` | 400 | 分页参数非法（size 超过 200 / page < 1） | `{ "max": 200 }` |
+| `ERP-SYS-0009` | 400 | 排序字段不在允许列表 | `{ "allowed": ["createdAt","code"] }` |
+| `ERP-SYS-0010` | 409 | 幂等键冲突：相同 key 不同请求体 | `{ "idempotencyKey": "..." }` |
+
+## AUTH — 认证与授权（`ERP-AUTH-*`）
+
+| Code | HTTP | 含义 | details |
+|---|---|---|---|
+| `ERP-AUTH-0001` | 401 | 未提供凭证 | — |
+| `ERP-AUTH-0002` | 401 | 凭证无效或已过期 | — |
+| `ERP-AUTH-4001` | 403 | 缺少功能权限 | `{ "required": "purchase:order:approve" }` |
+| `ERP-AUTH-4002` | 404 | 资源不在数据权限范围内 | — （**刻意返回 404**：403 会泄漏资源存在性，见 `CONTRACTS.md` §2.2） |
+| `ERP-AUTH-4003` | 403 | 租户已停用 | — |
+| `ERP-AUTH-4004` | 403 | 用户已停用 | — |
+
+## IAM — 组织与权限（`ERP-IAM-*`）
+
+| Code | HTTP | 含义 | details |
+|---|---|---|---|
+| `ERP-IAM-1001` | 400 | 组织编码格式非法 | `{ "pattern": "..." }` |
+| `ERP-IAM-2001` | 409 | 组织编码在租户内已存在 | `{ "code": "..." }` |
+| `ERP-IAM-2002` | 409 | 不能将组织移动到自己的子节点下 | `{ "orgId": "...", "targetId": "..." }` |
+| `ERP-IAM-2003` | 409 | 组织下仍有下级或在职员工，不能停用 | `{ "childCount": 3, "employeeCount": 12 }` |
+| `ERP-IAM-3001` | 422 | 角色已被用户引用，不能删除 | `{ "userCount": 5 }` |
+| `ERP-IAM-3002` | 422 | 数据权限配置非法：指定范围但未给出组织列表 | `{ "scopeType": "SPECIFIED_ORG" }` |
+
+## NUM — 编号中心（`ERP-NUM-*`）
+
+| Code | HTTP | 含义 | details |
+|---|---|---|---|
+| `ERP-NUM-2001` | 409 | 编号规则已被使用，不能修改流水位数 | `{ "businessType": "PO" }` |
+| `ERP-NUM-3001` | 422 | 当日流水号已达上限 | `{ "businessType": "PO", "max": 999999 }` |
+| `ERP-NUM-3002` | 422 | 未配置该业务类型的编号规则 | `{ "businessType": "XX" }` |
+
+## DOC — 单据模型与状态机（`ERP-DOC-*`）
+
+| Code | HTTP | 含义 | details |
+|---|---|---|---|
+| `ERP-DOC-2001` | 409 | 非法状态迁移 | `{ "from": "APPROVED", "event": "SUBMIT", "allowed": ["CANCEL","PROCESS"] }` |
+| `ERP-DOC-2002` | 409 | 单据已被他人修改，请刷新后重试 | `{ "documentNo": "...", "version": 3 }` |
+| `ERP-DOC-3001` | 422 | 状态迁移守卫条件不满足 | `{ "guard": "creditLimit", "reason": "..." }` |
+| `ERP-DOC-3002` | 422 | 单据已关闭，不接受后续操作 | `{ "documentNo": "..." }` |
+
+> `ERP-DOC-2001` 的 `details.allowed` **必须**给出当前状态下允许的事件列表。
+> 只说"非法迁移"会让调用方（尤其是前端按钮置灰逻辑）只能靠猜。
+
+## APR — 审批（`ERP-APR-*`）
+
+| Code | HTTP | 含义 | details |
+|---|---|---|---|
+| `ERP-APR-2001` | 409 | 审批实例已结束，不能再操作 | `{ "instanceId": "...", "status": "APPROVED" }` |
+| `ERP-APR-2002` | 409 | 当前节点不是你的待办 | `{ "taskId": "..." }` |
+| `ERP-APR-3001` | 422 | 未配置该业务类型的审批定义 | `{ "businessType": "PURCHASE_ORDER" }` |
+| `ERP-APR-3002` | 422 | 审批人与提交人相同且定义不允许自审 | `{ "userId": "..." }` |
+
+## 预留段位（在各自 Phase 定义，此处只占位防止重号）
+
+| 前缀 | 上下文 | Phase |
+|---|---|---|
+| `ERP-MD-*` | 主数据 | P2 |
+| `ERP-INV-*` | 库存 | P3 |
+| `ERP-PUR-*` | 采购 | P4 |
+| `ERP-SAL-*` | 销售 | P5 |
+| `ERP-FIN-*` | 往来与结算 | P6 |
+| `ERP-RPT-*` | 报表 | P9 |
