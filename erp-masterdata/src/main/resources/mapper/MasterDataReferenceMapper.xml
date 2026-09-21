@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.masterdata.repository.MasterDataReferenceMapper">
+
+    <insert id="register">
+        INSERT INTO md_reference (tenant_id, md_type, md_id, business_type, business_id)
+        VALUES (#{tenantId}, #{mdType}, #{mdId}, #{businessType}, #{businessId})
+        ON CONFLICT (tenant_id, md_type, md_id, business_type, business_id) DO NOTHING
+    </insert>
+
+    <select id="isReferenced" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM md_reference
+            WHERE tenant_id = #{tenantId} AND md_type = #{mdType} AND md_id = #{mdId}
+        )
+    </select>
+
+</mapper>

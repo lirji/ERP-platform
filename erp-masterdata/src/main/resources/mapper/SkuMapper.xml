@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.masterdata.repository.SkuMapper">
+
+    <sql id="cols">
+        id, tenant_id AS tenantId, product_id AS productId, base_unit_id AS baseUnitId,
+        code, name, spec, barcode, batch_managed AS batchManaged, enabled, version
+    </sql>
+
+    <insert id="insert">
+        INSERT INTO md_sku (tenant_id, product_id, base_unit_id, code, name, spec,
+                            barcode, batch_managed, enabled, version)
+        VALUES (#{s.tenantId}, #{s.productId}, #{s.baseUnitId}, #{s.code}, #{s.name},
+                #{s.spec}, #{s.barcode}, #{s.batchManaged}, #{s.enabled}, 0)
+    </insert>
+
+    <select id="findById" resultType="com.lrj.erp.masterdata.model.Sku">
+        SELECT <include refid="cols"/> FROM md_sku
+        WHERE tenant_id = #{tenantId} AND id = #{id}
+    </select>
+
+    <select id="findByCode" resultType="com.lrj.erp.masterdata.model.Sku">
+        SELECT <include refid="cols"/> FROM md_sku
+        WHERE tenant_id = #{tenantId} AND code = #{code}
+    </select>
+
+    <select id="findAll" resultType="com.lrj.erp.masterdata.model.Sku">
+        SELECT <include refid="cols"/> FROM md_sku
+        WHERE tenant_id = #{tenantId} ORDER BY id
+    </select>
+
+    <!-- 只改描述字段；code 与 base_unit_id 刻意不出现在 SET 中 -->
+    <update id="updateDescriptive">
+        UPDATE md_sku
+        SET name = #{s.name}, spec = #{s.spec}, barcode = #{s.barcode},
+            version = version + 1, updated_at = now()
+        WHERE tenant_id = #{s.tenantId} AND id = #{s.id} AND version = #{expectedVersion}
+    </update>
+
+    <update id="updateKeyFields">
+        UPDATE md_sku
+        SET code = #{s.code}, base_unit_id = #{s.baseUnitId},
+            version = version + 1, updated_at = now()
+        WHERE tenant_id = #{s.tenantId} AND id = #{s.id} AND version = #{expectedVersion}
+    </update>
+
+    <update id="setEnabled">
+        UPDATE md_sku SET enabled = #{enabled}, updated_at = now()
+        WHERE tenant_id = #{tenantId} AND id = #{id}
+    </update>
+
+</mapper>
