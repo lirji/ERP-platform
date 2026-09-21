@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.lrj.erp</groupId>
+    <artifactId>erp-platform</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>erp-iam</artifactId>
+  <name>erp-iam</name>
+  <!-- 身份与访问：租户/公司/组织/部门/员工/用户/角色/权限/数据范围。只做授权，认证外包给 auth-platform(Casdoor)。 -->
+  <description>身份与访问：租户/公司/组织/部门/员工/用户/角色/权限/数据范围。只做授权，认证外包给 auth-platform(Casdoor)。</description>
+
+  <!-- 拥有的表前缀：iam_* （Data Ownership，见 MODULE_SERVICE_MAP.md） -->
+
+  <dependencies>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-kernel</artifactId></dependency>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-numbering</artifactId></dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    <!-- 本模块拥有 iam_* 表，需要持久层；SQL 只出现在 resources/mapper/*.xml -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+    </dependency>
+  </dependencies>
+</project>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.lrj.erp</groupId>
+    <artifactId>erp-platform</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>erp-masterdata</artifactId>
+  <name>erp-masterdata</name>
+  <!-- 主数据中心：商品(SPU/SKU)、往来单位、财务基础数据，含编码唯一与引用后受限修改规则。 -->
+  <description>主数据中心：商品(SPU/SKU)、往来单位、财务基础数据，含编码唯一与引用后受限修改规则。</description>
+
+  <!-- 拥有的表前缀：md_* （Data Ownership，见 MODULE_SERVICE_MAP.md） -->
+
+  <dependencies>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-kernel</artifactId></dependency>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-iam</artifactId></dependency>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-numbering</artifactId></dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    <!-- 本模块拥有 md_* 表，需要持久层；SQL 只出现在 resources/mapper/*.xml -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+    </dependency>
+  </dependencies>
+</project>
