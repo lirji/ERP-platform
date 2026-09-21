@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.lrj.erp</groupId>
+    <artifactId>erp-platform</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>erp-inventory</artifactId>
+  <name>erp-inventory</name>
+  <!-- 库存内核：仓库结构、余额台账、流水、预占、批次、调拨/盘点/调整。本项目最关键的领域。 -->
+  <description>库存内核：仓库结构、余额台账、流水、预占、批次、调拨/盘点/调整。本项目最关键的领域。</description>
+
+  <!-- 拥有的表前缀：inv_* （Data Ownership，见 MODULE_SERVICE_MAP.md） -->
+
+  <dependencies>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-kernel</artifactId></dependency>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-iam</artifactId></dependency>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-masterdata</artifactId></dependency>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-numbering</artifactId></dependency>
+    <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-approval</artifactId></dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+    <!-- 本模块拥有 inv_* 表，需要持久层；SQL 只出现在 resources/mapper/*.xml -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+    </dependency>
+  </dependencies>
+</project>

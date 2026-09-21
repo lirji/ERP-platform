@@ -60,6 +60,11 @@ dimensions:
 
 ## 6. 未知项（`unknowns`）
 
+> **2026-09-21 更新：`U-04` 已解决（`ADR-002`）。** 处置方式是扩展 Engineering Skill System 的
+> `RESOURCE-SCOPE-POLICY-v1.json`，把 Maven/Gradle/npm 构建清单纳入既有的 `modify_runtime_files`
+> 写动作（依据：`Makefile` 早已归入该动作，属于一致性修复而非扩张授权）。
+> 变更前后该系统自身的 159 项治理测试均全绿。`CS-M0-02` 的 Discovery 阻塞随之解除，P0 已执行完毕。
+
 | id | 未知 | 影响 | 退出标准 |
 |---|---|---|---|
 | `U-04` | Runtime 的 resource-scope 策略不把 Maven 构建清单（`pom.xml`）归入任何可写动作——**已实测** `classify("pom.xml") → None`，`classify("erp-app/pom.xml") → None` | `CS-M0-02`（多模块骨架需要写 13 个 `pom.xml`） | 确认 Runtime 是否扩展可写路径以包含构建清单，或由人工一次性创建骨架后把仓库交回 Runtime；结论写入 ADR 并相应调整 `CS-M0-02` 的 scope |

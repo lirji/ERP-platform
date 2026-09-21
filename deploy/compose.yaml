@@ -1,0 +1,41 @@
+# ERP 本地开发环境。
+#
+# 只包含本项目真实使用的中间件——当前就是一个 PostgreSQL。
+# 提示词第二十五章明确禁止加入项目没有使用的无关中间件；
+# Redis / Kafka / RabbitMQ / Elasticsearch 均已在 TECH_SELECTION 的 Complexity Budget 中
+# 被否决或推迟，因此这里不出现它们。引入时机见该文档。
+#
+# 镜像与版本刻意与 dev-infra 对齐（postgres:16-alpine），避免版本漂移（开发规范 §五）。
+# 两种用法二选一：
+#   A. 复用 dev-infra 共享实例（默认，见 .env.example 的 ERP_DB_PORT=45432）
+#   B. 用本文件起项目专属实例（端口 45532，避免与 dev-infra 的 45432 冲突）
+name: erp-platform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-erp}
+      POSTGRES_USER: ${POSTGRES_USER:-erp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?必须在 .env 中设置 POSTGRES_PASSWORD}
+      # 统一时区与编码，避免不同开发机产生行为差异
+      TZ: Asia/Shanghai
+      LANG: C.UTF-8
+    ports:
+      # 只绑定回环地址：本地开发库不应暴露到局域网
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-45532}:5432"
+    volumes:
+      - erp-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # 用 pg_isready 判定真正可接受连接，而不是容器"在运行"
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-erp} -d ${POSTGRES_DB:-erp}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  erp-pgdata:
+    name: erp-pgdata
