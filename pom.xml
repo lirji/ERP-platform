@@ -2,107 +2,153 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-  <!--
-    erp-platform 聚合根 POM。
-    模块划分来自 docs/design/erp-platform/architecture/MODULE_SERVICE_MAP.md，
-    不是从提示词候选结构直接照搬（差异与理由见该文档第 4 节）。
-    当前只有 erp-app 一个可运行单元：逻辑服务边界先行，物理拆分later（ADR-004）。
-  -->
-  <parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.3.11</version>
-    <relativePath/>
-  </parent>
+    <!--
+      erp-platform 聚合根 POM。
+      模块划分来自 docs/design/erp-platform/architecture/MODULE_SERVICE_MAP.md，
+      不是从提示词候选结构直接照搬（差异与理由见该文档第 4 节）。
+      当前只有 erp-app 一个可运行单元：逻辑服务边界先行，物理拆分later（ADR-004）。
+    -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.11</version>
+        <relativePath/>
+    </parent>
 
-  <groupId>com.lrj.erp</groupId>
-  <artifactId>erp-platform</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
-  <packaging>pom</packaging>
-  <name>erp-platform</name>
-  <description>企业级 ERP：多租户 · 进销存 · 财务闭环</description>
+    <groupId>com.lrj.erp</groupId>
+    <artifactId>erp-platform</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>erp-platform</name>
+    <description>企业级 ERP：多租户 · 进销存 · 财务闭环</description>
 
-  <modules>
-    <!-- 平台件（无业务语义，被所有业务模块依赖） -->
-    <module>erp-kernel</module>
-    <module>erp-numbering</module>
-    <!-- 支撑域 -->
-    <module>erp-iam</module>
-    <module>erp-masterdata</module>
-    <module>erp-approval</module>
-    <module>erp-document</module>
-    <!-- 核心域 -->
-    <module>erp-inventory</module>
-    <module>erp-procurement</module>
-    <module>erp-sales</module>
-    <module>erp-finance</module>
-    <!-- 查询侧 -->
-    <module>erp-reporting</module>
-    <!-- 组装与启动 -->
-    <module>erp-app</module>
-  </modules>
+    <modules>
+        <!-- 平台件（无业务语义，被所有业务模块依赖） -->
+        <module>erp-kernel</module>
+        <module>erp-numbering</module>
+        <!-- 支撑域 -->
+        <module>erp-iam</module>
+        <module>erp-masterdata</module>
+        <module>erp-approval</module>
+        <module>erp-document</module>
+        <!-- 核心域 -->
+        <module>erp-inventory</module>
+        <module>erp-procurement</module>
+        <module>erp-sales</module>
+        <module>erp-finance</module>
+        <!-- 查询侧 -->
+        <module>erp-reporting</module>
+        <!-- 组装与启动 -->
+        <module>erp-app</module>
+    </modules>
 
-  <properties>
-    <java.version>21</java.version>
-    <maven.compiler.release>21</maven.compiler.release>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- 版本核验结果见 docs/design/erp-platform/adr/ADR-003-version-baseline.md -->
-    <mybatis-plus.version>3.5.9</mybatis-plus.version>
-    <archunit.version>1.4.1</archunit.version>
-  </properties>
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- 版本核验结果见 docs/design/erp-platform/adr/ADR-003-version-baseline.md -->
+        <mybatis-plus.version>3.5.9</mybatis-plus.version>
+        <archunit.version>1.4.1</archunit.version>
+    </properties>
 
-  <dependencyManagement>
+    <dependencyManagement>
+        <dependencies>
+            <!-- 本仓库内部模块统一在此声明版本，子模块引用时不写 version -->
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-numbering</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-iam</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-masterdata</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-approval</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-document</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-inventory</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-procurement</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-sales</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-finance</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lrj.erp</groupId>
+                <artifactId>erp-reporting</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
-      <!-- 本仓库内部模块统一在此声明版本，子模块引用时不写 version -->
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-kernel</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-numbering</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-iam</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-masterdata</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-approval</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-document</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-inventory</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-procurement</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-sales</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-finance</artifactId><version>${project.version}</version></dependency>
-      <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-reporting</artifactId><version>${project.version}</version></dependency>
-
-      <dependency>
-        <groupId>com.baomidou</groupId>
-        <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-        <version>${mybatis-plus.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.tngtech.archunit</groupId>
-        <artifactId>archunit-junit5</artifactId>
-        <version>${archunit.version}</version>
-        <scope>test</scope>
-      </dependency>
+        <!-- 所有模块共享的测试基座；业务依赖一律由各模块自行声明 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
-  </dependencyManagement>
 
-  <dependencies>
-    <!-- 所有模块共享的测试基座；业务依赖一律由各模块自行声明 -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
-  <build>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <configuration>
-            <!-- *IT 交给 failsafe，surefire 只跑单元/领域/架构测试 -->
-            <excludes><exclude>**/*IT.java</exclude></excludes>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <!-- *IT 交给 failsafe，surefire 只跑单元/领域/架构测试 -->
+                        <excludes>
+                            <exclude>**/*IT.java</exclude>
+                        </excludes>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 </project>
