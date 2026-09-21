@@ -22,5 +22,18 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>
     </dependency>
+    <!--
+      Outbox 框架需要持久层。erp-kernel 仍然不拥有任何**业务**表——
+      erp_outbox_message 是平台基础设施表（erp_ 前缀，V1 基线），
+      不属于任何业务上下文，因此由内核管理而不是塞进某个业务模块。
+    -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
   </dependencies>
 </project>

@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.lrj.erp.kernel.context.RequestMetadata;
+import com.lrj.erp.kernel.context.RequestMetadataHolder;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -38,6 +40,9 @@ public class TraceIdFilter extends OncePerRequestFilter {
             traceId = UUID.randomUUID().toString().replace("-", "");
         }
         MDC.put(MDC_TRACE_ID, traceId);
+        // 来源信息在此一并采集：审计要求记录来源 IP 与终端，而审计发生在更下游的模块，
+        // 那里拿不到 HttpServletRequest
+        RequestMetadataHolder.set(new RequestMetadata(clientIp(request), request.getHeader("User-Agent")));
         // 回写响应头：调用方（含前端与测试）拿到 traceId 才能据此提工单
         response.setHeader(TRACE_HEADER, traceId);
         try {
@@ -45,6 +50,22 @@ public class TraceIdFilter extends OncePerRequestFilter {
         } finally {
             // 必须清理：线程池复用会让下一个请求继承上一个的 traceId
             MDC.remove(MDC_TRACE_ID);
+            RequestMetadataHolder.clear();
         }
+    }
+
+    /**
+     * 取真实客户端 IP。优先 X-Forwarded-For 的第一段（最初的客户端），
+     * 其后各段是途经的代理；没有该头时回落到直连地址。
+     *
+     * <p>注意：X-Forwarded-For 可被伪造，仅用于审计展示与排障，
+     * <b>不得</b>作为任何安全判定的依据。
+     */
+    private static String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

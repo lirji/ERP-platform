@@ -30,12 +30,17 @@
 | 一致性模型 | [`architecture/CONSISTENCY_MODEL.md`](../../docs/design/erp-platform/architecture/CONSISTENCY_MODEL.md) | backend-architecture-design |
 | 流程与状态模型 | [`architecture/WORKFLOW_STATE_MODEL.md`](../../docs/design/erp-platform/architecture/WORKFLOW_STATE_MODEL.md) | backend-architecture-design |
 | 技术选型 | [`docs/design/erp-platform/TECH_SELECTION.md`](../../docs/design/erp-platform/TECH_SELECTION.md) | backend-architecture-design |
+| 工程约定（八项） | [`conventions/ENGINEERING_CONVENTIONS.md`](../../docs/design/erp-platform/conventions/ENGINEERING_CONVENTIONS.md) | P0 Foundation |
+| **CONTRACTS（跨切面契约）** | [`contracts/CONTRACTS.md`](../../docs/design/erp-platform/contracts/CONTRACTS.md) | public-engineering-workflow:contracts |
+| 错误码表 | [`contracts/ERROR_CODES.md`](../../docs/design/erp-platform/contracts/ERROR_CODES.md) | 同上 |
+| 事件目录 | [`contracts/EVENT_CATALOG.md`](../../docs/design/erp-platform/contracts/EVENT_CATALOG.md) | 同上 |
+| P1 API 契约 | [`contracts/API_P1_PLATFORM_KERNEL.md`](../../docs/design/erp-platform/contracts/API_P1_PLATFORM_KERNEL.md) | 同上 |
+| ADR-001..004 | [`adr/`](../../docs/design/erp-platform/adr/) | P0 Foundation |
 
 ## 尚未产出（刻意，属于后续阶段的 Owner）
 
 | 产物 | Owner | 何时 |
 |---|---|---|
-| `CONTRACTS`（API 路径、错误码表、事件 schema、字段校验） | public-engineering-workflow:contracts | P0 之后、P1 之前 |
 | `IMPLEMENTATION_SLICES` | implementation-slicing | CONTRACTS 之后 |
 | `SOURCE_CODE` | backend-implementation / frontend-implementation | 各切片 |
 | `TEST_RESULT` | implementation-validation | 各切片 |

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.numbering.repository.NumberSequenceMapper">
+
+    <!--
+      原子取号。ON CONFLICT DO UPDATE 让"不存在则建、存在则递增"成为一条语句，
+      并发下由 PostgreSQL 保证行级原子性：不会重号，也不会因先查后写产生竞态。
+      RETURNING 直接拿回新值，省去二次查询。
+    -->
+    <select id="nextValue" resultType="java.lang.Long">
+        INSERT INTO num_sequence (tenant_id, business_type, biz_date, current_value, updated_at)
+        VALUES (#{tenantId}, #{businessType}, #{bizDate}, 1, now())
+        ON CONFLICT (tenant_id, business_type, biz_date)
+        DO UPDATE SET current_value = num_sequence.current_value + 1,
+                      updated_at    = now()
+        RETURNING current_value
+    </select>
+
+    <select id="findEnabledRule"
+            resultType="com.lrj.erp.numbering.repository.NumberSequenceMapper$NumberRuleRecord">
+        SELECT prefix    AS prefix,
+               seq_width AS seqWidth
+        FROM num_rule
+        WHERE tenant_id = #{tenantId}
+          AND business_type = #{businessType}
+          AND enabled = TRUE
+    </select>
+
+</mapper>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.iam.repository.UserAuthMapper">
+
+    <select id="findUser" resultType="com.lrj.erp.iam.repository.UserAuthMapper$UserAuthRecord">
+        SELECT u.id         AS userId,
+               u.tenant_id  AS tenantId,
+               u.company_id AS companyId,
+               o.org_path   AS orgPath,
+               t.timezone   AS timezone,
+               u.enabled    AS userEnabled,
+               t.enabled    AS tenantEnabled
+        FROM iam_user u
+                 JOIN iam_tenant t ON t.id = u.tenant_id
+                 JOIN iam_org o ON o.id = u.org_id AND o.tenant_id = u.tenant_id
+        WHERE t.code = #{tenantCode}
+          AND u.username = #{username}
+    </select>
+
+    <select id="findPermissions" resultType="java.lang.String">
+        SELECT DISTINCT rp.permission
+        FROM iam_user_role ur
+                 JOIN iam_role r ON r.id = ur.role_id AND r.tenant_id = ur.tenant_id
+                 JOIN iam_role_permission rp ON rp.role_id = r.id AND rp.tenant_id = r.tenant_id
+        WHERE ur.tenant_id = #{tenantId}
+          AND ur.user_id = #{userId}
+          AND r.enabled = TRUE
+    </select>
+
+    <select id="findDataScopeTypes" resultType="java.lang.String">
+        SELECT r.data_scope_type
+        FROM iam_user_role ur
+                 JOIN iam_role r ON r.id = ur.role_id AND r.tenant_id = ur.tenant_id
+        WHERE ur.tenant_id = #{tenantId}
+          AND ur.user_id = #{userId}
+          AND r.enabled = TRUE
+    </select>
+
+</mapper>

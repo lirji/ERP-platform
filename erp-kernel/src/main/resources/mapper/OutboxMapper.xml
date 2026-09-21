@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.kernel.outbox.OutboxMapper">
+
+    <insert id="append">
+        INSERT INTO erp_outbox_message
+            (tenant_id, aggregate_type, aggregate_id, event_type, payload, status)
+        VALUES
+            (#{m.tenantId}, #{m.aggregateType}, #{m.aggregateId}, #{m.eventType},
+             #{m.payload}::jsonb, 'PENDING')
+    </insert>
+
+    <select id="claimPending" resultType="com.lrj.erp.kernel.outbox.OutboxMessage">
+        SELECT id, tenant_id AS tenantId, aggregate_type AS aggregateType,
+               aggregate_id AS aggregateId, event_type AS eventType,
+               payload::text AS payload, status, retry_count AS retryCount,
+               next_retry_at AS nextRetryAt, last_error AS lastError
+        FROM erp_outbox_message
+        WHERE status = 'PENDING'
+          AND (next_retry_at IS NULL OR next_retry_at &lt;= now())
+        ORDER BY created_at, id
+        LIMIT #{limit}
+        FOR UPDATE SKIP LOCKED
+    </select>
+
+    <update id="markPublished">
+        UPDATE erp_outbox_message
+        SET status = 'PUBLISHED', published_at = now(), last_error = NULL
+        WHERE id = #{id}
+    </update>
+
+    <!--
+      达到重试上限即转 DEAD（死信），不再自动重试。
+      刻意不删除记录：死信是排障与补偿的唯一线索，删掉等于抹掉证据。
+      退避用 retry_count 线性放大，避免失败时打满下游。
+    -->
+    <update id="markFailed">
+        UPDATE erp_outbox_message
+        SET retry_count   = retry_count + 1,
+            last_error    = #{error},
+            status        = CASE WHEN retry_count + 1 >= #{maxRetry} THEN 'DEAD' ELSE 'PENDING' END,
+            next_retry_at = now() + ((retry_count + 1) * #{backoffSeconds} || ' seconds')::interval
+        WHERE id = #{id}
+    </update>
+
+</mapper>
