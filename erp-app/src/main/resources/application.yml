@@ -1,0 +1,52 @@
+# ERP 应用配置。
+# 技术配置走 env（随部署走），业务参数（超收比例、负库存策略等）走数据库表 CAP-P11——
+# 两类配置职责不同，同一配置键不得有两个权威来源（TECH_SELECTION「配置」行，否决 Nacos）。
+server:
+  port: ${ERP_APP_PORT:8500}
+
+spring:
+  application:
+    name: erp-platform
+  datasource:
+    url: jdbc:postgresql://${ERP_DB_HOST:127.0.0.1}:${ERP_DB_PORT:45432}/${ERP_DB_NAME:erp}
+    username: ${ERP_DB_USER:erp}
+    password: ${ERP_DB_PASSWORD}
+    hikari:
+      # 连接池上限显式配置，不用默认值：资源必须有界（开发规范 §11）
+      maximum-pool-size: ${ERP_DB_POOL_MAX:20}
+      minimum-idle: 2
+      connection-timeout: 10000
+  # 隔离级别用 PostgreSQL 默认 READ COMMITTED：
+  # 库存并发靠显式行锁 + 乐观锁，不靠 REPEATABLE READ（TECH_SELECTION「数据库运行时」行）
+  flyway:
+    enabled: true
+    # 各模块迁移脚本按 classpath 合并；模块内目录见 MODULE_SERVICE_MAP
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+mybatis-plus:
+  configuration:
+    # 下划线列名 -> 驼峰字段，避免每个 resultMap 手写映射
+    map-underscore-to-camel-case: true
+  # 复杂 SQL 只出现在各模块的 mapper XML 中（开发规范 §7，ArchUnit 强制业务层不得拼 SQL）
+  mapper-locations: classpath*:mapper/**/*.xml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+
+logging:
+  pattern:
+    # 结构化日志的最小形态：每行可按 traceId 检索。
+    # P10 再升级为 JSON 输出与业务字段（tenantId/businessType/documentNo）。
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [traceId=%X{traceId:-}] %logger{36} - %msg%n"
+  level:
+    com.lrj.erp: ${ERP_LOG_LEVEL:INFO}
