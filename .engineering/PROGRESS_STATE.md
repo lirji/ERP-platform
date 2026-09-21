@@ -9,10 +9,25 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P2 Master Data 已完成**（GATE-P2-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P3 Inventory Core |
-| 分支 | `feat/p2-master-data` → `main`，已推送 `origin/main` |
+| 当前 Phase | **P3 Inventory Core 已完成**（GATE-P3-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P4 / P5（可并行） |
+| 分支 | `feat/p3-inventory-core` → `main`，已推送 `origin/main` |
 | Driver | `claude-code-local`，probed `health: READY` |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
+
+## P3 出口条件实测结果（GATE-P3-20260921）
+
+| # | 条件 | 结果 |
+|---|---|---|
+| ① | INV-01 余额 == 流水代数和（1000 次随机过账） | PASS |
+| ② | INV-02 并发 50 线程无负库存、无超卖 | PASS |
+| ③ | INV-04 同一来源行过账 10 次只一次效果（含并发） | PASS |
+| ④ | 预占→部分消耗→释放 链正确，释放不超额 | PASS |
+| ⑤ | 每条流水可反查来源单据行 | PASS |
+| ⑥ | `available` 无对应数据库字段 | PASS |
+| ⑦ | 对账脚本跑通 | PASS |
+
+`mvn clean verify` EXIT 0 · 单元/架构 31 + 集成 50 = **81**
+Smoke：app 启动 UP · Flyway v60 · 对账通过
 
 ## P2 出口条件实测结果（GATE-P2-20260921）
 
@@ -72,18 +87,17 @@
 | `SPECIFIED_ORG/COMPANY` | 角色上暂无明细配置表，命中时按 `DEPT_AND_BELOW` 处理，待 P2 补 |
 | `Q-02`/`Q-03` | 库位精度、是否对接 `wms-platform` —— P3 前答复较好 |
 
-## 下一步（P3 Inventory Core）★ 本项目最关键的一期
+## 下一步（P4 / P5，可并行）
 
-依赖 P2（已满足）。能力 CAP-C01..C04、CAP-S05。
+二者都只依赖 P3（已满足）且互不依赖：
+- **P4 Procure to Receive**（CAP-C05、CAP-S09）：申请→审批→订单→收货→入库。
+  需 `Q-09`（超收比例 / 是否允许负库存）答复；未答复按「默认禁止、配置可放开」继续。
+- **P5 Order to Ship**（CAP-C06、CAP-S06）：订单→审批→预占→拣货→出库→发货→签收。
+
 可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
 
-不可妥协的三条不变量，必须由**真实数据库**集成测试证明：
-- `INV-01` 随机 1000 次过账后，余额 == 流水代数和；
-- `INV-02` 并发 50 线程扣同一桶，无负库存、无超卖；
-- `INV-04` 同一来源行过账 10 次只有一次效果。
-
-另：`available` **不得有对应数据库字段**（算出来的，不是存出来的），
-由代码审查 + 架构测试保证。
+P4/P5 出口条件中最容易被糊弄的一条：**单据图双向可追溯**——
+从入库单可反查采购订单，从采购订单可正查入库单，两个方向都要断言。
 
 ## 历史：P1 Platform Kernel
 
