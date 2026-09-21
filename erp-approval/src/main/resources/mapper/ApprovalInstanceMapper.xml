@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.approval.repository.ApprovalInstanceMapper">
+
+    <insert id="insertPending">
+        INSERT INTO apr_instance
+            (tenant_id, business_type, business_id, document_no, status, submitted_by)
+        VALUES (#{tenantId}, #{businessType}, #{businessId}, #{documentNo}, 'PENDING', #{submittedBy})
+        ON CONFLICT DO NOTHING
+    </insert>
+
+    <select id="findPendingId" resultType="java.lang.Long">
+        SELECT id FROM apr_instance
+        WHERE tenant_id = #{tenantId} AND business_type = #{businessType}
+          AND business_id = #{businessId} AND status = 'PENDING'
+    </select>
+
+    <select id="findLatestStatus" resultType="java.lang.String">
+        SELECT status FROM apr_instance
+        WHERE tenant_id = #{tenantId} AND business_type = #{businessType}
+          AND business_id = #{businessId}
+        ORDER BY created_at DESC, id DESC LIMIT 1
+    </select>
+
+    <!-- 条件更新：只有仍为 PENDING 才能落决策，避免重复审批产生二次效果 -->
+    <update id="decide">
+        UPDATE apr_instance
+        SET status = #{status}, decided_by = #{decidedBy}, decided_at = now(),
+            reject_reason = #{reason}
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND status = 'PENDING'
+    </update>
+
+</mapper>

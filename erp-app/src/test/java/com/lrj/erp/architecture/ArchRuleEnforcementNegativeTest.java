@@ -158,4 +158,26 @@ class ArchRuleEnforcementNegativeTest {
                 "规则过严会误伤正常列名");
         assertFalse(AvailableIsDerivedTest.isAvailable("reserved"));
     }
+
+    @Test
+    @DisplayName("依赖矩阵规则确实能发现跨模块依赖")
+    void 依赖矩阵规则确实会拦截() {
+        JavaClasses production = new ClassFileImporter()
+                .withImportOption(com.tngtech.archunit.core.importer.ImportOption
+                        .Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("com.lrj.erp");
+
+        // procurement → inventory 是矩阵**允许**的真实依赖。
+        // 用一条"禁止"它的规则去跑，必须失败——这证明矩阵检查真的看得见模块间依赖，
+        // 而不是因为写法问题永远匹配不到任何类。
+        ArchRule wouldForbidRealDependency = noClasses()
+                .that().resideInAPackage("com.lrj.erp.procurement..")
+                .should().dependOnClassesThat().resideInAnyPackage("com.lrj.erp.inventory..");
+
+        AssertionError raised = assertThrows(AssertionError.class,
+                () -> wouldForbidRealDependency.check(production),
+                "矩阵检查发现不了已知存在的跨模块依赖，说明它是空跑的");
+        assertTrue(raised.getMessage().contains("procurement"),
+                "拦截信息应指明违规模块，实际：" + raised.getMessage());
+    }
 }

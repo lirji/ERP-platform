@@ -1,4 +1,4 @@
-package com.lrj.erp.document.model;
+package com.lrj.erp.kernel.statemachine;
 
 /**
  * 一次状态迁移的事实。
