@@ -9,10 +9,24 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P0 Foundation 已完成**，下一步 P1 Platform Kernel |
-| 分支 | `feat/p0-foundation` 已合并进 `main`（本地） |
+| 当前 Phase | **P1 Platform Kernel 已完成**（GATE-P1-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P2 Master Data |
+| 分支 | `feat/p1-platform-kernel` → `main`，已推送 `origin/main` |
 | Driver | `claude-code-local`，probed `health: READY` |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
+
+## P1 出口条件实测结果（GATE-P1-20260921）
+
+| # | 条件 | 结果 |
+|---|---|---|
+| ① | OIDC 登录拿到 AccessContext | **PARTIAL** —— 装配链路已通过完整 HTTP 栈验证，但 OIDC 令牌校验未接入，见 `BLOCK-P1-01` |
+| ② | 无权限用户 403 | PASS |
+| ③ | 数据权限下推且断言 SQL | PASS |
+| ④ | 并发 50 线程取号 | PASS |
+| ⑤ | 非法迁移被拒 + 并发只一个成功 | PASS |
+| ⑥ | 审计含前后值/IP/traceId | PASS |
+| ⑦ | Outbox 重试与死信 | PASS |
+
+`mvn clean verify` EXIT 0 · 单元/架构 29 + 集成 27 = **56**（架构测试含 6 项负向证明）
 
 ## P0 出口条件（ROADMAP §P0）实测结果
 
@@ -40,10 +54,21 @@
 | 项 | 说明 |
 |---|---|
 | ~~`origin` remote~~ | 已由用户确认，2026-09-21 推送完成（传输改用 HTTPS，原因见下） |
+| **`BLOCK-P1-01`** | **生产无认证路径**：临时请求头通道默认关闭且可伪造，OIDC 未接入。Casdoor 已实测可达（`:8000`，discovery 正常），接入前需在 Casdoor 注册 ERP 客户端（需用户决定客户端标识与回调地址）。**关闭前不得对外暴露** |
 | `Q-09` | 超收比例 / 是否允许负库存 —— **P4 之前**必须答复，当前按"默认禁止、配置可放开"继续 |
+| `SPECIFIED_ORG/COMPANY` | 角色上暂无明细配置表，命中时按 `DEPT_AND_BELOW` 处理，待 P2 补 |
 | `Q-02`/`Q-03` | 库位精度、是否对接 `wms-platform` —— P3 前答复较好 |
 
-## 下一步（P1 Platform Kernel）
+## 下一步（P2 Master Data）
+
+依赖 P1（已满足）。能力 CAP-P05、CAP-G02、CAP-G04。
+可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
+
+P2 出口条件（ROADMAP）中易被糊弄的两条：
+- 停用的主数据不能被**新**单据引用，但**已有单据不受影响**；
+- 修改 SKU 名称后历史单据显示的仍是**快照值**（`MasterDataRef` 机制）。
+
+## 历史：P1 Platform Kernel
 
 依赖 P0（已满足）。目标：组织/权限/编号/单据模型/状态机/审计/单据图/审批端口可用。
 **按 ARTIFACT_INDEX，P1 之前应先产出 `CONTRACTS`**（API 路径、错误码表、事件 schema、字段校验），
