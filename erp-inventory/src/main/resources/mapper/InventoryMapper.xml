@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.inventory.infrastructure.InventoryMapper">
+
+    <sql id="bucketWhere">
+        tenant_id = #{b.tenantId} AND company_id = #{b.companyId}
+        AND warehouse_id = #{b.warehouseId} AND location_id = #{b.locationId}
+        AND sku_id = #{b.skuId} AND batch_no = #{b.batchNo}
+    </sql>
+
+    <!-- 并发首次过账时，由 uk_inv_balance_bucket 保证只建出一行 -->
+    <insert id="ensureBucket">
+        INSERT INTO inv_balance (tenant_id, company_id, warehouse_id, location_id, sku_id, batch_no)
+        VALUES (#{b.tenantId}, #{b.companyId}, #{b.warehouseId}, #{b.locationId},
+                #{b.skuId}, #{b.batchNo})
+        ON CONFLICT (tenant_id, company_id, warehouse_id, location_id, sku_id, batch_no)
+        DO NOTHING
+    </insert>
+
+    <select id="findBalance"
+            resultType="com.lrj.erp.inventory.infrastructure.InventoryMapper$BalanceRow">
+        SELECT id, on_hand AS onHand, reserved, locked, in_transit AS inTransit, version
+        FROM inv_balance WHERE <include refid="bucketWhere"/>
+    </select>
+
+    <update id="increaseOnHand">
+        UPDATE inv_balance
+        SET on_hand = on_hand + #{qty}, version = version + 1, updated_at = now()
+        WHERE <include refid="bucketWhere"/>
+    </update>
+
+    <!--
+      可用量判断写进 WHERE：判断与扣减原子完成。
+      先查再扣在并发下必然超卖——两个线程可以同时读到"够"。
+      影响行数为 0 即可用量不足，由调用方判定为业务失败。
+    -->
+    <update id="decreaseOnHandIfAvailable">
+        UPDATE inv_balance
+        SET on_hand = on_hand - #{qty}, version = version + 1, updated_at = now()
+        WHERE <include refid="bucketWhere"/>
+          AND on_hand - reserved - locked >= #{qty}
+    </update>
+
+    <!-- INV-04：撞 uk_inv_txn_source 即同一来源行已过账，返回 0 行表示应跳过 -->
+    <insert id="appendTransaction">
+        INSERT INTO inv_transaction
+            (tenant_id, company_id, warehouse_id, location_id, sku_id, batch_no,
+             direction, biz_type, quantity, signed_quantity,
+             source_doc_type, source_doc_id, source_line_id, operator_id, trace_id)
+        VALUES
+            (#{r.bucket.tenantId}, #{r.bucket.companyId}, #{r.bucket.warehouseId},
+             #{r.bucket.locationId}, #{r.bucket.skuId}, #{r.bucket.batchNo},
+             #{r.direction.code}, #{r.bizType}, #{r.quantity}, #{signedQty},
+             #{r.sourceDocType}, #{r.sourceDocId}, #{r.sourceLineId}, #{r.operatorId}, #{traceId})
+        ON CONFLICT (tenant_id, source_doc_type, source_doc_id, source_line_id, direction)
+        DO NOTHING
+    </insert>
+
+    <select id="sumSignedQuantity" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(signed_quantity), 0)
+        FROM inv_transaction WHERE <include refid="bucketWhere"/>
+    </select>
+
+    <insert id="insertReservation">
+        INSERT INTO inv_reservation
+            (tenant_id, company_id, warehouse_id, location_id, sku_id, batch_no,
+             source_doc_type, source_doc_id, source_line_id, reserved_qty)
+        VALUES
+            (#{b.tenantId}, #{b.companyId}, #{b.warehouseId}, #{b.locationId},
+             #{b.skuId}, #{b.batchNo}, #{sourceDocType}, #{sourceDocId}, #{sourceLineId}, #{qty})
+        ON CONFLICT (tenant_id, source_doc_type, source_doc_id, source_line_id) DO NOTHING
+    </insert>
+
+    <update id="increaseReservedIfAvailable">
+        UPDATE inv_balance
+        SET reserved = reserved + #{qty}, version = version + 1, updated_at = now()
+        WHERE <include refid="bucketWhere"/>
+          AND on_hand - reserved - locked >= #{qty}
+    </update>
+
+    <update id="decreaseReserved">
+        UPDATE inv_balance
+        SET reserved = reserved - #{qty}, version = version + 1, updated_at = now()
+        WHERE <include refid="bucketWhere"/> AND reserved >= #{qty}
+    </update>
+
+    <select id="findReservation"
+            resultType="com.lrj.erp.inventory.infrastructure.InventoryMapper$ReservationRow">
+        SELECT id, reserved_qty AS reservedQty, consumed_qty AS consumedQty,
+               released_qty AS releasedQty, version
+        FROM inv_reservation
+        WHERE tenant_id = #{tenantId} AND source_doc_type = #{sourceDocType}
+          AND source_doc_id = #{sourceDocId} AND source_line_id = #{sourceLineId}
+    </select>
+
+    <!-- 消耗与释放都带上界条件：超出未消耗量时影响 0 行，由调用方判为业务失败 -->
+    <update id="consumeReservation">
+        UPDATE inv_reservation
+        SET consumed_qty = consumed_qty + #{qty}, version = version + 1
+        WHERE id = #{id} AND consumed_qty + released_qty + #{qty} &lt;= reserved_qty
+    </update>
+
+    <update id="releaseReservation">
+        UPDATE inv_reservation
+        SET released_qty = released_qty + #{qty}, version = version + 1
+        WHERE id = #{id} AND consumed_qty + released_qty + #{qty} &lt;= reserved_qty
+    </update>
+
+</mapper>
