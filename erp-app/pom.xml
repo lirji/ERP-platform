@@ -66,10 +66,37 @@
       <groupId>com.tngtech.archunit</groupId>
       <artifactId>archunit-junit5</artifactId>
     </dependency>
+
+    <!--
+      集成测试用真实 PostgreSQL —— 由 deploy/compose.yaml 提供，不用 Testcontainers。
+      理由见 AbstractPostgresIT 的类注释（本机 Docker Desktop 与 docker-java 互操作失败）。
+      Gate G-06 要求的是"不接受纯 Mock 证明事务正确"，真实 compose 数据库同样满足。
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
     <plugins>
+      <!--
+        显式绑定 failsafe 的 execution。spring-boot-starter-parent 只做 pluginManagement，
+        不绑定生命周期——不写这段，*IT 会被 surefire 排除、又不被 failsafe 执行，
+        结果是集成测试一个都没跑却构建全绿（P0 已经吃过一次"空跑假绿"的亏）。
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
