@@ -117,6 +117,15 @@
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
+            <!--
+              MyBatis-Plus 3.5.9 起把 JSqlParser 支持拆到独立构件，
+              租户与数据权限拦截器依赖它做 SQL 改写；不引入则 DataPermissionInterceptor 不可用。
+            -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-jsqlparser</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.tngtech.archunit</groupId>
                 <artifactId>archunit-junit5</artifactId>

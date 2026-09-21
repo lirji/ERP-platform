@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.document.repository.AuditLogMapper">
+
+    <!-- 不写 tenant_id / org_path 条件：由拦截器注入，见接口注释 -->
+    <select id="findByBusinessType" resultType="java.util.Map">
+        SELECT id, business_type, business_id, action, org_path, created_by
+        FROM doc_audit_log
+        WHERE business_type = #{businessType}
+        ORDER BY occurred_at DESC, id DESC
+    </select>
+
+    <insert id="insert">
+        INSERT INTO doc_audit_log
+            (tenant_id, user_id, business_type, business_id, action,
+             company_id, org_path, created_by)
+        VALUES
+            (#{tenantId}, #{userId}, #{businessType}, #{businessId}, #{action},
+             #{companyId}, #{orgPath}, #{createdBy})
+    </insert>
+
+</mapper>

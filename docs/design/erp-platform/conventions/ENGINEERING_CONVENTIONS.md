@@ -71,12 +71,16 @@
 ## 7. 数据库约定
 
 - **建表必须写表注释与每一个字段注释**（开发规范 §一）——由 `MigrationCommentConventionTest` 强制，缺一即构建失败。
-- 迁移用 Flyway，命名 `V{n}__{snake_case}.sql`；**已执行的迁移不得修改**，修正走新迁移。
+- 迁移用 Flyway，命名 `V{n}__{snake_case}.sql`；**已执行的迁移不得修改**，修正走新迁移（`V31` 即为一例）。
+- 版本按模块分段：`V1` 平台基线 · `V10-19` iam · `V20-29` numbering · `V30-39` document · `V40-49` approval · `V50+` 业务模块。
+  分段带来"低版本后到"，故启用 `out-of-order`；其安全前提是**迁移只触碰本模块拥有的表**，因此不存在跨模块迁移依赖。写出跨模块迁移依赖本身即架构违规。
 - 表前缀即数据所有权：`inv_` / `pur_` / `sal_` / `fin_` / `iam_` / `md_` / `apr_` / `doc_` / `rpt_` / `num_`；`erp_` 为平台共享表。跨模块访问由 `TableOwnershipArchitectureTest` 拦截。
 - 金额用 `NUMERIC`，禁止 `float` / `double`；数量同理并明确精度与单位。
 - 时间统一 `TIMESTAMPTZ`。
 - 所有业务表含 `tenant_id` 且查询强制过滤（假设 A-10）。
 - SQL 只出现在 Mapper XML；业务层不得拼接 SQL。
+- **数据权限列约定**：凡进入数据权限过滤的表必须具备 `tenant_id` / `company_id` / `org_path` / `created_by` 四列，列名统一，否则拦截器无法以同一套规则改写 SQL。
+- 受数据权限保护的表走**服务端允许列表**（`TenantAndDataScopeHandler.DATA_SCOPE_TABLES`）。用排除列表会让新建业务表默认不受保护——那是危险的默认值。
 
 ## 8. 幂等约定
 

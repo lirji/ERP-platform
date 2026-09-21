@@ -29,5 +29,10 @@
       <groupId>com.baomidou</groupId>
       <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
     </dependency>
+    <!-- 租户与数据权限的 SQL 改写需要 JSqlParser（MP 3.5.9 起为独立构件） -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-jsqlparser</artifactId>
+    </dependency>
   </dependencies>
 </project>
