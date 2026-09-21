@@ -145,4 +145,17 @@ class ArchRuleEnforcementNegativeTest {
         assertTrue(r.violations().stream().anyMatch(v -> v.contains("qty")),
                 "应报出缺少字段注释的具体字段，实际为：" + r.violations());
     }
+
+    @Test
+    @DisplayName("含 available 列的建表语句，必须被规则判为违规")
+    void 可用量落列规则确实会拦截() {
+        // 直接用规则的判定函数验证它认得这些列名；
+        // 若有人把判定改成恒 false，本测试立刻失败
+        assertTrue(AvailableIsDerivedTest.isAvailable("available"));
+        assertTrue(AvailableIsDerivedTest.isAvailable("AVAILABLE_QTY"));
+        assertTrue(AvailableIsDerivedTest.isAvailable("available_quantity"));
+        assertFalse(AvailableIsDerivedTest.isAvailable("on_hand"),
+                "规则过严会误伤正常列名");
+        assertFalse(AvailableIsDerivedTest.isAvailable("reserved"));
+    }
 }
