@@ -26,4 +26,20 @@ public interface AuditLogMapper {
                @Param("companyId") long companyId,
                @Param("orgPath") String orgPath,
                @Param("createdBy") long createdBy);
+
+    /** 写入一条完整审计记录（含前后值、来源 IP、终端、traceId）。 */
+    int insertAudit(@Param("tenantId") long tenantId,
+                    @Param("userId") long userId,
+                    @Param("businessType") String businessType,
+                    @Param("businessId") String businessId,
+                    @Param("documentNo") String documentNo,
+                    @Param("action") String action,
+                    @Param("beforeValue") String beforeValue,
+                    @Param("afterValue") String afterValue,
+                    @Param("sourceIp") String sourceIp,
+                    @Param("userAgent") String userAgent,
+                    @Param("traceId") String traceId,
+                    @Param("companyId") long companyId,
+                    @Param("orgPath") String orgPath,
+                    @Param("createdBy") long createdBy);
 }

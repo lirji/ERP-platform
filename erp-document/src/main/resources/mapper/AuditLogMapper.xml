@@ -20,4 +20,16 @@
              #{companyId}, #{orgPath}, #{createdBy})
     </insert>
 
+    <!-- JSONB 列需要显式转型，否则 JDBC 会以 varchar 绑定而报类型不匹配 -->
+    <insert id="insertAudit">
+        INSERT INTO doc_audit_log
+            (tenant_id, user_id, business_type, business_id, document_no, action,
+             before_value, after_value, source_ip, user_agent, trace_id,
+             company_id, org_path, created_by)
+        VALUES
+            (#{tenantId}, #{userId}, #{businessType}, #{businessId}, #{documentNo}, #{action},
+             #{beforeValue}::jsonb, #{afterValue}::jsonb, #{sourceIp}, #{userAgent}, #{traceId},
+             #{companyId}, #{orgPath}, #{createdBy})
+    </insert>
+
 </mapper>
