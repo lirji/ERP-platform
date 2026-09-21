@@ -9,10 +9,26 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P3 Inventory Core 已完成**（GATE-P3-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P4 / P5（可并行） |
-| 分支 | `feat/p3-inventory-core` → `main`，已推送 `origin/main` |
+| 当前 Phase | **P4 Procure to Receive 已完成**（GATE-P4-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P5 Order to Ship |
+| 分支 | `feat/p4-procure-to-receive` → `main`，已推送 `origin/main` |
 | Driver | `claude-code-local`，probed `health: READY` |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
+
+## P4 出口条件实测结果（GATE-P4-20260921）
+
+| # | 条件 | 结果 |
+|---|---|---|
+| ① | 分 3 次收货，库存增加量 == 收货总量 | PASS |
+| ② | **超收一律被拒**（用户决策，无配置开关） | PASS |
+| ③ | 少收后关闭剩余，已收部分保留 | PASS |
+| ④ | 已收货的订单不能取消 | PASS |
+| ⑤ | 单据图双向可追溯 | PASS |
+| ⑥ | 重复提交收货单不二次入库 | PASS |
+
+`mvn clean verify` EXIT 0（连跑两次）· 单元/架构 33 + 集成 59 = **92**
+
+> 本阶段补齐了 P1 遗留的 CAP-P08（单据关系图）与 CAP-P10（审批中心）——
+> 二者列在 ROADMAP 的 P1 能力集但无对应出口条件，此前未落地。详见 GATE-P4 §3。
 
 ## P3 出口条件实测结果（GATE-P3-20260921）
 
@@ -87,17 +103,21 @@ Smoke：app 启动 UP · Flyway v60 · 对账通过
 | `SPECIFIED_ORG/COMPANY` | 角色上暂无明细配置表，命中时按 `DEPT_AND_BELOW` 处理，待 P2 补 |
 | `Q-02`/`Q-03` | 库位精度、是否对接 `wms-platform` —— P3 前答复较好 |
 
-## 下一步（P4 / P5，可并行）
+## 下一步（P5 Order to Ship）
 
-二者都只依赖 P3（已满足）且互不依赖：
-- **P4 Procure to Receive**（CAP-C05、CAP-S09）：申请→审批→订单→收货→入库。
-  需 `Q-09`（超收比例 / 是否允许负库存）答复；未答复按「默认禁止、配置可放开」继续。
-- **P5 Order to Ship**（CAP-C06、CAP-S06）：订单→审批→预占→拣货→出库→发货→签收。
+依赖 P3（已满足）。能力 CAP-C06、CAP-S06：订单→审批→预占→拣货→出库→发货→签收。
+P3 的预占链（预占→部分消耗→释放）已就绪，P5 直接建立其上。
+
+出口条件中易被糊弄的两条：
+- 取消订单必须**同时**断言预占表与余额都正确，而不只看其一；
+- 信用超限被拦截后，审批放行才可下单。
 
 可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
 
-P4/P5 出口条件中最容易被糊弄的一条：**单据图双向可追溯**——
-从入库单可反查采购订单，从采购订单可正查入库单，两个方向都要断言。
+## 已答复的问题
+
+- `Q-09` 超收 → **不允许超收**（用户 2026-09-21）。不设配置开关，
+  由 CHECK 约束与 UPDATE 上界条件双保险。负库存同样禁止（P3 CHECK 约束已硬性保证）。
 
 ## 历史：P1 Platform Kernel
 
