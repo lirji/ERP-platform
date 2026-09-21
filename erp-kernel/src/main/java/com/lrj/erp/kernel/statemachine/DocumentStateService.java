@@ -1,9 +1,6 @@
-package com.lrj.erp.document.service;
+package com.lrj.erp.kernel.statemachine;
 
-import com.lrj.erp.document.model.StateTransitionRecord;
-import com.lrj.erp.document.repository.StateTransitionMapper;
 import com.lrj.erp.kernel.error.DomainException;
-import com.lrj.erp.kernel.statemachine.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,6 +1,5 @@
-package com.lrj.erp.document.repository;
+package com.lrj.erp.kernel.statemachine;
 
-import com.lrj.erp.document.model.StateTransitionRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 

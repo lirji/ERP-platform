@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.lrj.erp.document.repository.StateTransitionMapper">
+<mapper namespace="com.lrj.erp.kernel.statemachine.StateTransitionMapper">
 
     <!--
       ON CONFLICT DO NOTHING：并发下同一 from_version 只有一条能插入成功，
       其余返回 0 行。把"谁赢"交给数据库的唯一索引，而不是应用层的先查后写。
     -->
     <insert id="insertIfVersionUnused">
-        INSERT INTO doc_state_transition
+        INSERT INTO erp_state_transition
             (tenant_id, business_type, business_id, document_no,
              from_state, to_state, event, from_version, operator_id, trace_id)
         VALUES
@@ -18,7 +18,7 @@
         ON CONFLICT (tenant_id, business_type, business_id, from_version) DO NOTHING
     </insert>
 
-    <select id="findHistory" resultType="com.lrj.erp.document.model.StateTransitionRecord">
+    <select id="findHistory" resultType="com.lrj.erp.kernel.statemachine.StateTransitionRecord">
         SELECT tenant_id     AS tenantId,
                business_type AS businessType,
                business_id   AS businessId,
@@ -29,7 +29,7 @@
                from_version  AS fromVersion,
                operator_id   AS operatorId,
                trace_id      AS traceId
-        FROM doc_state_transition
+        FROM erp_state_transition
         WHERE tenant_id = #{tenantId}
           AND business_type = #{businessType}
           AND business_id = #{businessId}

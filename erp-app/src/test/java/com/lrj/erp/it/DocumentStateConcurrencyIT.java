@@ -1,6 +1,6 @@
 package com.lrj.erp.it;
 
-import com.lrj.erp.document.service.DocumentStateService;
+import com.lrj.erp.kernel.statemachine.DocumentStateService;
 import com.lrj.erp.kernel.error.DomainException;
 import com.lrj.erp.kernel.statemachine.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +82,7 @@ class DocumentStateConcurrencyIT extends AbstractPostgresIT {
 
             // 数据库中确实只留下一条流转记录
             Integer rows = jdbc.queryForObject("""
-                    SELECT count(*) FROM doc_state_transition
+                    SELECT count(*) FROM erp_state_transition
                     WHERE tenant_id = ? AND business_type = ? AND business_id = ?
                     """, Integer.class, TENANT, BIZ_TYPE, businessId);
             assertEquals(1, rows, "同一版本只应留下一条流转记录");
@@ -120,7 +120,7 @@ class DocumentStateConcurrencyIT extends AbstractPostgresIT {
                         TENANT, BIZ_TYPE, businessId, "PO-Y", 0L, 4501L, "t"));
 
         Integer rows = jdbc.queryForObject("""
-                SELECT count(*) FROM doc_state_transition
+                SELECT count(*) FROM erp_state_transition
                 WHERE tenant_id = ? AND business_id = ?
                 """, Integer.class, TENANT, businessId);
         assertEquals(0, rows, "非法迁移不得在流转日志中留下记录");

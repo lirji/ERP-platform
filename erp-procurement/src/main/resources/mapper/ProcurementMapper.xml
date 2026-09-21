@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.procurement.infrastructure.ProcurementMapper">
+
+    <select id="insertOrder" resultType="java.lang.Long">
+        INSERT INTO pur_order (tenant_id, company_id, order_no, supplier_id, supplier_ref,
+                               warehouse_id, org_path, created_by)
+        VALUES (#{tenantId}, #{companyId}, #{orderNo}, #{supplierId}, #{supplierRef}::jsonb,
+                #{warehouseId}, #{orgPath}, #{createdBy})
+        RETURNING id
+    </select>
+
+    <select id="insertOrderLine" resultType="java.lang.Long">
+        INSERT INTO pur_order_line (tenant_id, order_id, line_no, sku_id, sku_ref,
+                                    ordered_qty, unit_price)
+        VALUES (#{tenantId}, #{orderId}, #{lineNo}, #{skuId}, #{skuRef}::jsonb,
+                #{orderedQty}, #{unitPrice})
+        RETURNING id
+    </select>
+
+    <select id="findOrder"
+            resultType="com.lrj.erp.procurement.domain.ProcurementRepository$OrderHeader">
+        SELECT id, tenant_id AS tenantId, company_id AS companyId, order_no AS orderNo,
+               supplier_id AS supplierId, warehouse_id AS warehouseId, state, version,
+               org_path AS orgPath
+        FROM pur_order WHERE tenant_id = #{tenantId} AND id = #{orderId}
+    </select>
+
+    <sql id="lineCols">
+        id, order_id AS orderId, line_no AS lineNo, sku_id AS skuId,
+        sku_ref::text AS skuRefJson, ordered_qty AS orderedQty,
+        received_qty AS receivedQty, closed
+    </sql>
+
+    <select id="findOrderLines"
+            resultType="com.lrj.erp.procurement.domain.ProcurementRepository$OrderLine">
+        SELECT <include refid="lineCols"/> FROM pur_order_line
+        WHERE tenant_id = #{tenantId} AND order_id = #{orderId} ORDER BY line_no
+    </select>
+
+    <select id="findOrderLine"
+            resultType="com.lrj.erp.procurement.domain.ProcurementRepository$OrderLine">
+        SELECT <include refid="lineCols"/> FROM pur_order_line
+        WHERE tenant_id = #{tenantId} AND id = #{orderLineId}
+    </select>
+
+    <!--
+      上界写进 WHERE：与 ck_pur_line_no_over_receipt 形成双保险，
+      且并发分批收货时判断与累加原子完成。
+      先查已收量再累加，两个线程可以同时读到"还能收"，结果就是超收。
+    -->
+    <update id="increaseReceivedIfWithinOrdered">
+        UPDATE pur_order_line
+        SET received_qty = received_qty + #{qty}
+        WHERE tenant_id = #{tenantId} AND id = #{orderLineId}
+          AND closed = FALSE
+          AND received_qty + #{qty} &lt;= ordered_qty
+    </update>
+
+    <update id="closeOrderLine">
+        UPDATE pur_order_line SET closed = TRUE
+        WHERE tenant_id = #{tenantId} AND id = #{orderLineId} AND closed = FALSE
+    </update>
+
+    <update id="updateOrderState">
+        UPDATE pur_order SET state = #{state}, version = #{newVersion}
+        WHERE tenant_id = #{tenantId} AND id = #{orderId}
+    </update>
+
+    <select id="insertReceipt" resultType="java.lang.Long">
+        INSERT INTO pur_receipt (tenant_id, company_id, receipt_no, order_id,
+                                 warehouse_id, org_path, created_by)
+        VALUES (#{tenantId}, #{companyId}, #{receiptNo}, #{orderId},
+                #{warehouseId}, #{orgPath}, #{createdBy})
+        RETURNING id
+    </select>
+
+    <select id="insertReceiptLine" resultType="java.lang.Long">
+        INSERT INTO pur_receipt_line (tenant_id, receipt_id, order_line_id, sku_id, batch_no, received_qty)
+        VALUES (#{tenantId}, #{receiptId}, #{orderLineId}, #{skuId}, #{batchNo}, #{qty})
+        RETURNING id
+    </select>
+
+    <select id="hasAnyReceipt" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM pur_receipt WHERE tenant_id = #{tenantId} AND order_id = #{orderId})
+    </select>
+
+</mapper>
