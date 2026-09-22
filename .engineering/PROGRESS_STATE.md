@@ -9,8 +9,8 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P6 AR/AP/Settlement 已完成本地验收**，两条后端 MVP 闭环通过；Git 交付待完成 |
-| 分支 | `feat/p6-finance-settlement`；P5 已合并推送 edd85db，P6 待交付 |
+| 当前 Phase | **P6 AR/AP/Settlement 已完成并交付**，两条后端 MVP 闭环通过；实现 ad38b1f，合并 067b732 已推送 origin/main |
+| 分支 | P5 分支与 P6 分支均已合并推送 main；P5 edd85db，P6 067b732 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
@@ -127,7 +127,7 @@ P3 的预占链（预占→部分消耗→释放）已就绪，P5 直接建立�
 - 取消订单必须**同时**断言预占表与余额都正确，而不只看其一；
 - 信用超限被拦截后，审批放行才可下单。
 
-P6 两条内部业务闭环已验证，下一步完成 Git 交付；后续生产能力与 P7–P11 不属于本次目标。
+P6 两条内部业务闭环已验证并交付，本次目标已完成；后续生产能力与 P7–P11 不属于本次目标。
 
 可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
 

@@ -2,7 +2,7 @@
 
 - 稳定 ID：P6，沿用已批准 ROADMAP；用户 2026-09-22 明确授权做到 MVP 闭环。
 - needs：P4 已交付、P5 已交付（main edd85db）。
-- 状态：DONE（本地验收通过，Git 交付待完成）。
+- 状态：DONE（120 项本地验收通过，实现 ad38b1f，合并 067b732 已推送 main）。
 - owner：backend-implementation；验证 implementation-validation；交付 task-git-delivery。
 - 契约：API_P6_FINANCE.md、CONTRACTS.md、EVENT_CATALOG.md、DOMAIN_MAP / DATA_ARCHITECTURE。
 - 范围：finance 模块，kernel 事件 DTO/可靠投递，采购/销售事件财务载荷，masterdata 本位币查询，app 调度与真实数据库测试。
