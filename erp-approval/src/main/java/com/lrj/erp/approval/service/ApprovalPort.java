@@ -20,6 +20,9 @@ public interface ApprovalPort {
     /** 驳回，必须给原因——没有原因的驳回让提交人无从修改。 */
     void reject(long tenantId, long instanceId, long rejectedBy, String reason);
 
+    /** 校验指定实例的业务归属与状态，防止把其他单据的审批结果用于本单。 */
+    boolean matches(long tenantId, long instanceId, String businessType, String businessId, String status);
+
     /** 当前状态：PENDING / APPROVED / REJECTED / WITHDRAWN；无实例返回 null。 */
     String statusOf(long tenantId, String businessType, String businessId);
 }
