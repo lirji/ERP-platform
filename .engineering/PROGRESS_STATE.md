@@ -9,14 +9,14 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P11 本地验证 PASS / 远程 CI 待验**；157 项全量回归 |
+| 当前 Phase | **P11 Gate PASS**；158 项全量回归 |
 | 分支 | feat/p11-local-delivery；P5/P6/P7/P9/P10 已合并推送 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
 ## P11 当前验收
 
-157 项全量回归通过；Compose 应用健康、演示重复初始化/清理/重建及监控检查通过。待远程 CI 与最终 Git 交付。详见 TEST_RESULT-P11.json 和 CODEX_PROGRESS.md。
+158 项全量回归通过；Compose 应用健康、演示重复初始化/清理/重建及监控检查通过。远程 CI 35681340638 全绿，正在完成 main 合并推送。详见 TEST_RESULT-P11.json 和 CODEX_PROGRESS.md。
 
 ## P10 历史验收
 
