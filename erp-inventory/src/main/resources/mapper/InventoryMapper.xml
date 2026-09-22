@@ -125,4 +125,8 @@
           AND source_doc_id = #{r.sourceDocId} AND source_line_id = #{r.sourceLineId}
           AND direction = #{r.direction.code}
     </update>
+    <select id="sourceValue" resultType="java.math.BigDecimal">
+        SELECT signed_value FROM inv_transaction WHERE tenant_id=#{tenantId} AND source_doc_type=#{docType}
+          AND source_doc_id=#{docId} AND source_line_id=#{lineId} AND direction='OUT'
+    </select>
 </mapper>

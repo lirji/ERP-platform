@@ -5,6 +5,7 @@ import com.lrj.erp.kernel.error.ErrorCode;
 /** 采购错误码（ERP-PUR-*）。 */
 public enum ProcurementErrorCode implements ErrorCode {
 
+    INVALID_RETURN ("ERP-PUR-3010", "退货来源、数量、审批或幂等内容非法", 422),
     ORDER_NOT_FOUND ("ERP-PUR-3001", "采购订单不存在",                     422),
     LINE_NOT_FOUND  ("ERP-PUR-3002", "采购订单行不存在",                   422),
     /**

@@ -124,6 +124,7 @@ public class PurchaseOrderService {
         long receiptId = repository.insertReceipt(tenantId, order.companyId(), receiptNo,
                 orderId, order.warehouseId(), order.orgPath(), operatorId);
 
+        String currency = currencies.requireBase(tenantId);
         BigDecimal postedAmount = BigDecimal.ZERO;
         for (ReceiptLine l : lines) {
             ProcurementRepository.OrderLine ol = repository.findOrderLine(tenantId, l.orderLineId());
@@ -146,8 +147,9 @@ public class PurchaseOrderService {
                                "attempted", l.quantity()));
             }
 
-            postedAmount = postedAmount.add(ol.receivedQty().add(l.quantity()).multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)
-                    .subtract(ol.receivedQty().multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)));
+            BigDecimal lineAmount = ol.receivedQty().add(l.quantity()).multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)
+                    .subtract(ol.receivedQty().multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP));
+            postedAmount = postedAmount.add(lineAmount);
 
             long receiptLineId = repository.insertReceiptLine(tenantId, receiptId,
                     l.orderLineId(), ol.skuId(), l.batchNo(), l.quantity());
@@ -156,6 +158,7 @@ public class PurchaseOrderService {
             // 重复提交同一张收货单会撞 INV-04 唯一索引而不产生二次入库。
             InventoryBucket bucket = InventoryBucket.ofBatch(tenantId, order.companyId(),
                     order.warehouseId(), ol.skuId(), l.batchNo());
+            repository.recordLineAmount(tenantId,receiptLineId,lineAmount,currency);
             posting.post(new PostingRequest(bucket, PostingDirection.IN, l.quantity(),
                     "PURCHASE_IN", DOC_TYPE_RECEIPT, String.valueOf(receiptId),
                     String.valueOf(receiptLineId), operatorId,
@@ -171,7 +174,7 @@ public class PurchaseOrderService {
         outbox.record(tenantId, "PurchaseReceipt", String.valueOf(receiptId), PostedDocument.PURCHASE,
                 new PostedDocument(DOC_TYPE_ORDER, String.valueOf(orderId), order.orderNo(),
                         DOC_TYPE_RECEIPT, String.valueOf(receiptId), receiptNo,
-                        order.companyId(), order.supplierId(), postedAmount, currencies.requireBase(tenantId),
+                        order.companyId(), order.supplierId(), postedAmount, currency,
                         order.orgPath(), operatorId));
         return receiptId;
     }

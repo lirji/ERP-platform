@@ -75,6 +75,8 @@ public class MyBatisInventoryRepository implements InventoryRepository {
         }
     }
 
+    @Override public BigDecimal sourceValue(long t,String type,String id,String line) { return mapper.sourceValue(t,type,id,line); }
+
     @Override
     public boolean insertReservation(InventoryBucket bucket, String sourceDocType,
                                      String sourceDocId, String sourceLineId, BigDecimal qty) {

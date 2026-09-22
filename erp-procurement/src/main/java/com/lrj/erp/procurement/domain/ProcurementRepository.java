@@ -44,6 +44,9 @@ public interface ProcurementRepository {
     long insertReceiptLine(long tenantId, long receiptId, long orderLineId, long skuId,
                            String batchNo, BigDecimal qty);
 
+    /** 保存本次来源行金额和币种，供退货累计比例冲红；不改变历史原金额。 */
+    void recordLineAmount(long tenantId,long lineId,BigDecimal amount,String currency);
+
     /** 该订单是否已发生过收货——取消的守卫条件。 */
     boolean hasAnyReceipt(long tenantId, long orderId);
 

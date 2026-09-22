@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.finance.infrastructure.CreditMapper">
+    <sql id="table"><choose><when test="type.code() == 'AR'">fin_account_receivable</when><otherwise>fin_account_payable</otherwise></choose></sql>
+    <sql id="cols">id,tenant_id,bill_type,bill_id,document_no,amount,currency,return_type,return_id,return_no,refund_due,refunded_amount</sql>
+    <select id="findSource" resultType="com.lrj.erp.finance.domain.CreditRepository$Credit">
+        SELECT <include refid="cols"/> FROM fin_credit_adjustment WHERE tenant_id=#{tenantId} AND return_type=#{returnType} AND return_id=#{returnId}
+    </select>
+    <select id="find" resultType="com.lrj.erp.finance.domain.CreditRepository$Credit" flushCache="true" useCache="false">
+        SELECT <include refid="cols"/> FROM fin_credit_adjustment WHERE tenant_id=#{tenantId} AND id=#{id}
+    </select>
+    <update id="addCredit">UPDATE <include refid="table"/> SET credited_amount=credited_amount+#{amount},version=version+1
+        WHERE tenant_id=#{tenantId} AND id=#{billId} AND #{amount}>=0 AND credited_amount+#{amount} &lt;= amount</update>
+    <select id="insert" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO fin_credit_adjustment (tenant_id,bill_type,bill_id,document_no,amount,currency,return_type,return_id,return_no,refund_due,created_by)
+        VALUES (#{c.tenantId},#{c.billType},#{c.billId},#{c.documentNo},#{c.amount},#{c.currency},#{c.returnType},#{c.returnId},#{c.returnNo},#{c.refundDue},#{operator}) RETURNING id
+    </select>
+    <select id="findCommand" resultType="com.lrj.erp.finance.domain.CreditRepository$Refund">
+        SELECT id,adjustment_id,amount,currency,command_id FROM fin_refund_record WHERE tenant_id=#{tenantId} AND command_id=#{commandId}
+    </select>
+    <update id="addRefund">UPDATE fin_credit_adjustment SET refunded_amount=refunded_amount+#{amount}
+        WHERE tenant_id=#{tenantId} AND id=#{id} AND #{amount}>0 AND refunded_amount+#{amount} &lt;= refund_due</update>
+    <select id="insertRefund" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO fin_refund_record (tenant_id,adjustment_id,amount,currency,command_id,created_by)
+        VALUES (#{tenantId},#{id},#{amount},#{currency},#{commandId},#{operator}) RETURNING id
+    </select>
+</mapper>

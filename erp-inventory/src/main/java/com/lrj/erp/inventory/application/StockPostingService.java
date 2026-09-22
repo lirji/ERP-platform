@@ -117,6 +117,11 @@ public class StockPostingService {
         return repository.findBalance(bucket);
     }
 
+    /** 来源流水实际成本，供销售退货恢复原出库成本；未知保留为空。 */
+    public BigDecimal sourceValue(long tenantId,String docType,String docId,String lineId) {
+        return repository.sourceValue(tenantId,docType,docId,lineId);
+    }
+
     /** INV-01 对账：该桶全部流水的代数和。 */
     public BigDecimal ledgerSum(InventoryBucket bucket) {
         return repository.sumSignedQuantity(bucket);

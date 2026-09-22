@@ -48,6 +48,9 @@ public interface InventoryRepository {
     /** 查询账面成本，NULL 表示依据不足。 */
     CostSnapshot cost(InventoryBucket bucket);
 
+    /** 来源流水成本；NULL 为未知，不从当前均价猜历史。 */
+    BigDecimal sourceValue(long tenantId, String docType, String docId, String lineId);
+
     // ---------------------------------------------------------------- 预占
 
     /** @return false 表示同一来源行已预占（幂等） */

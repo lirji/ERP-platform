@@ -103,7 +103,7 @@ public class SalesOrderService {
             // 已获审批放行：无条件占用。放行是业务决定，不是把上限调高——
             // 调高上限会影响之后所有订单，放行只影响这一单。
             repository.occupyCreditForced(tenantId, customerId, total);
-        } else if (!repository.occupyCreditIfWithinLimit(tenantId, customerId, total, creditLimit.add(settledCredit.netSettled(tenantId, customerId)))) {
+        } else if (!repository.occupyCreditIfWithinLimit(tenantId, customerId, total, creditLimit.add(settledCredit.releasedCredit(tenantId, customerId)))) {
             throw new DomainException(SalesErrorCode.CREDIT_EXCEEDED,
                     Map.of("customerId", customerId, "creditLimit", creditLimit,
                            "used", repository.usedCredit(tenantId, customerId),
@@ -229,6 +229,7 @@ public class SalesOrderService {
         long shipmentId = repository.insertShipment(tenantId, order.companyId(), shipmentNo,
                 orderId, order.warehouseId(), order.orgPath(), operatorId);
 
+        String currency = currencies.requireBase(tenantId);
         BigDecimal postedAmount = BigDecimal.ZERO;
         for (ShipLine l : lines) {
             if (l == null || l.quantity() == null || l.quantity().signum() <= 0
@@ -246,8 +247,9 @@ public class SalesOrderService {
                                "alreadyShipped", ol.shippedQty(), "attempted", l.quantity()));
             }
 
-            postedAmount = postedAmount.add(ol.shippedQty().add(l.quantity()).multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)
-                    .subtract(ol.shippedQty().multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)));
+            BigDecimal lineAmount = ol.shippedQty().add(l.quantity()).multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)
+                    .subtract(ol.shippedQty().multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP));
+            postedAmount = postedAmount.add(lineAmount);
 
             InventoryBucket bucket = bucket(order, ol);
             // 先消耗预占再扣在库：两者都在同一事务，顺序不影响结果，
@@ -258,6 +260,7 @@ public class SalesOrderService {
             long shipmentLineId = repository.insertShipmentLine(tenantId, shipmentId,
                     ol.id(), ol.skuId(), ol.batchNo(), l.quantity());
 
+            repository.recordLineAmount(tenantId,shipmentLineId,lineAmount,currency);
             posting.post(new PostingRequest(bucket, PostingDirection.OUT, l.quantity(),
                     "SALES_OUT", DOC_TYPE_SHIPMENT, String.valueOf(shipmentId),
                     String.valueOf(shipmentLineId), operatorId));
@@ -268,7 +271,7 @@ public class SalesOrderService {
         outbox.record(tenantId, "Shipment", String.valueOf(shipmentId), PostedDocument.SALES,
                 new PostedDocument(DOC_TYPE_ORDER, String.valueOf(orderId), order.orderNo(),
                         DOC_TYPE_SHIPMENT, String.valueOf(shipmentId), shipmentNo,
-                        order.companyId(), order.customerId(), postedAmount, currencies.requireBase(tenantId),
+                        order.companyId(), order.customerId(), postedAmount, currency,
                         order.orgPath(), operatorId));
         return shipmentId;
     }
@@ -376,7 +379,7 @@ public class SalesOrderService {
 
     /** 查询客户当前已占用信用。 */
     public BigDecimal usedCredit(long tenantId, long customerId) {
-        return repository.usedCredit(tenantId, customerId).subtract(settledCredit.netSettled(tenantId, customerId));
+        return repository.usedCredit(tenantId, customerId).subtract(settledCredit.releasedCredit(tenantId, customerId));
     }
 
     public record NewLine(long skuId, MasterDataRef skuRef, String batchNo,

@@ -94,4 +94,6 @@
         SELECT EXISTS (SELECT 1 FROM pur_receipt WHERE tenant_id = #{tenantId} AND order_id = #{orderId})
     </select>
 
+    <update id="recordLineAmount">UPDATE pur_receipt_line SET posted_amount=#{amount},currency=#{currency}
+        WHERE tenant_id=#{tenantId} AND id=#{lineId} AND posted_amount IS NULL</update>
 </mapper>

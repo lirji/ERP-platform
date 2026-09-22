@@ -63,7 +63,7 @@ public class StockOperationService {
 
     private long create(StockOperationKind kind, InventoryBucket b, InventoryBucket target,
                         BigDecimal quantity, BigDecimal value, String reasonCode, String reason, long operator) {
-        require(b!=null && reason!=null && !reason.isBlank() && reason.length()<=256,"库存作业必须说明原因");
+        require(operator>0 && b!=null && reason!=null && !reason.isBlank() && reason.length()<=256,"库存作业必须说明原因");
         inventory.ensureBucket(b);
         CostSnapshot snapshot=inventory.lockCost(b);
         require(snapshot.countDocumentId()==null,"库存桶已冻结");
