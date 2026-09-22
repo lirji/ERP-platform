@@ -3,8 +3,13 @@
 # 两类配置职责不同，同一配置键不得有两个权威来源（TECH_SELECTION「配置」行，否决 Nacos）。
 server:
   port: ${ERP_APP_PORT:8500}
+  address: ${ERP_APP_BIND:127.0.0.1}
 
 spring:
+  task:
+    scheduling:
+      pool:
+        size: 2
   application:
     name: erp-platform
   datasource:
@@ -44,7 +49,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       show-details: when-authorized

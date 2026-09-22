@@ -20,7 +20,10 @@ public class DocumentStateService {
 
     private final StateTransitionMapper mapper;
 
-    public DocumentStateService(StateTransitionMapper mapper) {
+    private final com.lrj.erp.kernel.monitoring.BusinessAudit audit;
+
+    public DocumentStateService(StateTransitionMapper mapper,com.lrj.erp.kernel.monitoring.BusinessAudit audit) {
+        this.audit=audit;
         this.mapper = mapper;
     }
 
@@ -60,6 +63,7 @@ public class DocumentStateService {
                            "businessId", businessId,
                            "fromVersion", fromVersion));
         }
+        audit.record(tenantId,operatorId,businessType,businessId,documentNo,event.code());
         return next;
     }
 

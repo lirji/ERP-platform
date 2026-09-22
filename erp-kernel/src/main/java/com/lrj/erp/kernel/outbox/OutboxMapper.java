@@ -16,6 +16,9 @@ import java.util.List;
 @InterceptorIgnore(tenantLine = "true", dataPermission = "true")
 public interface OutboxMapper {
 
+    /** 运维汇总，只扫描未发布及死信分支。 */
+    OutboxHealthService.Health health();
+
     int append(@Param("m") OutboxMessage message);
 
     /**

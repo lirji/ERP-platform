@@ -14,5 +14,5 @@ fi
 TASK_JAR="${TASK_ROOT}/erp-app/target/erp-app-0.1.0-SNAPSHOT.jar"
 [[ -f "${TASK_JAR}" ]] || { echo '请先运行 mvn -DskipTests package' >&2; exit 2; }
 exec java -jar "${TASK_JAR}" --spring.main.web-application-type=none \
-  --erp.outbox.scheduling-enabled=false --erp.reporting.cli=true \
+  --erp.outbox.scheduling-enabled=false --erp.monitoring.enabled=false --erp.reporting.cli=true \
   "--erp.reporting.tenant=$1" "--erp.reporting.kind=$2" "--erp.reporting.job=${3:-0}"
