@@ -4,7 +4,7 @@
     <!-- 白名单常量表名；禁止使用调用方提供的字符串插值。 -->
     <sql id="billTable"><choose><when test="type.code() == 'AR'">fin_account_receivable</when><otherwise>fin_account_payable</otherwise></choose></sql>
     <sql id="cashTable"><choose><when test="type.code() == 'AR'">fin_receipt</when><otherwise>fin_payment</otherwise></choose></sql>
-    <sql id="billCols">id,tenant_id,company_id,partner_id,document_no,currency,amount,written_off_amount,paid_amount,version,source_doc_type,source_doc_id,source_doc_no,order_id,org_path,created_by</sql>
+    <sql id="billCols">id,tenant_id,company_id,partner_id,document_no,currency,amount,written_off_amount,paid_amount,version,source_doc_type,source_doc_id,source_doc_no,order_id,org_path,created_by,credited_amount</sql>
     <sql id="cashCols">id,bill_id,document_no,currency,amount,written_off_amount,command_id</sql>
     <select id="insertBill" resultType="java.lang.Long" affectData="true" flushCache="true">
         INSERT INTO <include refid="billTable"/>
@@ -34,11 +34,12 @@
     </select>
     <update id="addPaid">
         UPDATE <include refid="billTable"/> SET paid_amount=paid_amount+#{amount},version=version+1
-        WHERE tenant_id=#{tenantId} AND id=#{billId} AND #{amount}>0 AND paid_amount+#{amount} &lt;= amount
+        WHERE tenant_id=#{tenantId} AND id=#{billId} AND #{amount}>0 AND paid_amount+#{amount} &lt;= amount-credited_amount
     </update>
     <update id="addBillWrittenOff">
         UPDATE <include refid="billTable"/> SET written_off_amount=written_off_amount+#{amount},version=version+1
         WHERE tenant_id=#{tenantId} AND id=#{billId} AND written_off_amount+#{amount} BETWEEN 0 AND paid_amount
+        AND (#{amount} &lt; 0 OR written_off_amount+#{amount} &lt;= amount-credited_amount)
     </update>
     <update id="addCashWrittenOff">
         UPDATE <include refid="cashTable"/> SET written_off_amount=written_off_amount+#{amount},version=version+1
@@ -60,9 +61,8 @@
         UPDATE fin_settlement_record SET reversed=TRUE WHERE tenant_id=#{tenantId} AND id=#{settlementId}
         AND reversed=FALSE AND reversal_of IS NULL
     </update>
-    <select id="netSettled" resultType="java.math.BigDecimal">
-        SELECT COALESCE(SUM(s.amount),0) FROM fin_settlement_record s
-        JOIN fin_account_receivable b ON b.tenant_id=s.tenant_id AND b.id=s.bill_id
-        WHERE s.tenant_id=#{tenantId} AND s.bill_type='AR' AND b.partner_id=#{customerId}
+    <select id="releasedCredit" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(b.credited_amount + LEAST(b.written_off_amount,b.amount-b.credited_amount)),0)
+        FROM fin_account_receivable b WHERE b.tenant_id=#{tenantId} AND b.partner_id=#{customerId}
     </select>
 </mapper>

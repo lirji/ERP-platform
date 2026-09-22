@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 /** 将 SQL 影响行数映射为业务结果；事务边界由应用用例持有。 */
 @Repository
 public class MyBatisFinanceRepository implements FinanceRepository {
-    @Override public BigDecimal netSettled(long tenantId,long customerId){return mapper.netSettled(tenantId,customerId);}
+    @Override public BigDecimal releasedCredit(long tenantId,long customerId){return mapper.releasedCredit(tenantId,customerId);}
     private final FinanceMapper mapper;
     public MyBatisFinanceRepository(FinanceMapper mapper) { this.mapper=mapper; }
     @Override public Long insertBill(BillType type, Bill bill) {

@@ -64,5 +64,8 @@ public interface ProcurementMapper {
                            @Param("orderLineId") long orderLineId, @Param("skuId") long skuId,
                            @Param("batchNo") String batchNo, @Param("qty") BigDecimal qty);
 
+    /** 来源行财务快照，与原收发货同事务写入。 */
+    int recordLineAmount(@Param("tenantId") long tenantId,@Param("lineId") long lineId,@Param("amount") BigDecimal amount,@Param("currency") String currency);
+
     boolean hasAnyReceipt(@Param("tenantId") long tenantId, @Param("orderId") long orderId);
 }

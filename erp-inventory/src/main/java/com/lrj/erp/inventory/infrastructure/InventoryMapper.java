@@ -55,6 +55,9 @@ public interface InventoryMapper {
     /** 给本事务新建流水记录成本，不改写历史流水。 */
     int recordTransactionCost(@Param("r") PostingRequest request, @Param("value") BigDecimal value);
 
+    /** 只查询本模块的来源成本。 */
+    BigDecimal sourceValue(@Param("tenantId") long tenantId, @Param("docType") String docType, @Param("docId") String docId, @Param("lineId") String lineId);
+
     // ---------------------------------------------------------------- 预占
 
     int insertReservation(@Param("b") InventoryBucket bucket,

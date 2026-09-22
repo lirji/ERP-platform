@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.procurement.infrastructure.PurchaseReturnMapper">
+    <sql id="cols">id,tenant_id,document_no,source_line_id,quantity,batch_no,command_id,reason,amount,state,version,created_by</sql>
+    <select id="lockSource" resultType="com.lrj.erp.procurement.domain.PurchaseReturnRepository$Source" flushCache="true" useCache="false">
+        SELECT l.id AS line_id,h.id AS source_id,h.receipt_no AS source_no,h.company_id,o.supplier_id AS partner_id,
+          h.warehouse_id,l.sku_id,l.batch_no,l.received_qty AS quantity,l.returned_qty,l.posted_amount,l.currency
+        FROM pur_receipt_line l JOIN pur_receipt h ON h.tenant_id=l.tenant_id AND h.id=l.receipt_id
+        JOIN pur_order o ON o.tenant_id=h.tenant_id AND o.id=h.order_id
+        WHERE l.tenant_id=#{tenantId} AND l.id=#{lineId} FOR UPDATE OF l
+    </select>
+    <select id="lock" resultType="com.lrj.erp.procurement.domain.PurchaseReturnRepository$Return" flushCache="true" useCache="false">
+        SELECT <include refid="cols"/> FROM pur_return WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
+    </select>
+    <select id="command" resultType="com.lrj.erp.procurement.domain.PurchaseReturnRepository$Return">
+        SELECT <include refid="cols"/> FROM pur_return WHERE tenant_id=#{tenantId} AND command_id=#{commandId}
+    </select>
+    <select id="insert" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO pur_return(tenant_id,document_no,source_line_id,quantity,batch_no,command_id,reason,created_by)
+        VALUES (#{r.tenantId},#{r.documentNo},#{r.sourceLineId},#{r.quantity},#{r.batchNo},#{r.commandId},#{r.reason},#{r.createdBy}) RETURNING id
+    </select>
+    <update id="addReturned">UPDATE pur_receipt_line SET returned_qty=returned_qty+#{quantity}
+        WHERE tenant_id=#{tenantId} AND id=#{sourceLineId} AND #{quantity}>0 AND returned_qty+#{quantity} &lt;= received_qty</update>
+    <update id="transition">UPDATE pur_return SET state=#{next},version=version+1
+        WHERE tenant_id=#{r.tenantId} AND id=#{r.id} AND version=#{r.version} AND state=#{r.state}</update>
+    <update id="amount">UPDATE pur_return SET amount=#{amount} WHERE tenant_id=#{r.tenantId} AND id=#{r.id}</update>
+</mapper>

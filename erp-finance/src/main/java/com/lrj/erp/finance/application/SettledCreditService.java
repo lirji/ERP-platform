@@ -10,5 +10,5 @@ public class SettledCreditService implements SettledCreditQuery {
     private final FinanceRepository mapper;
     public SettledCreditService(FinanceRepository mapper){this.mapper=mapper;}
     /** 不缓存资金决策所依赖的核销净额，反核销提交后下一次查询即可看到。 */
-    @Override public BigDecimal netSettled(long tenantId,long customerId){return mapper.netSettled(tenantId,customerId);}
+    @Override public BigDecimal releasedCredit(long tenantId,long customerId){return mapper.releasedCredit(tenantId,customerId);}
 }

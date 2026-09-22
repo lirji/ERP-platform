@@ -65,6 +65,11 @@ public class MyBatisProcurementRepository implements ProcurementRepository {
         return mapper.insertReceiptLine(tenantId, receiptId, orderLineId, skuId, batchNo, qty);
     }
 
+    /** 必须命中本次刚插入的来源行，否则整体回滚。 */
+    @Override public void recordLineAmount(long tenantId,long lineId,BigDecimal amount,String currency) {
+        if(mapper.recordLineAmount(tenantId,lineId,amount,currency)!=1) throw new IllegalStateException("来源金额快照写入失败");
+    }
+
     @Override public boolean hasAnyReceipt(long tenantId, long orderId) {
         return mapper.hasAnyReceipt(tenantId, orderId);
     }

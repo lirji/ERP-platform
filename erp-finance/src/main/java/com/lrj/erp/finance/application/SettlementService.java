@@ -36,7 +36,7 @@ public class SettlementService {
         String no=next(tenantId,type.code());
         Bill candidate=new Bill(0,tenantId,source.companyId(),source.partnerId(),no,source.currency(),
                 source.amount(),BigDecimal.ZERO,BigDecimal.ZERO,0,source.childType(),source.childId(),source.childNo(),
-                source.parentId(),source.orgPath(),source.operatorId());
+                source.parentId(),source.orgPath(),source.operatorId(),BigDecimal.ZERO);
         Long id=repository.insertBill(type,candidate);
         if(id==null){
             Bill winner=repository.findSource(tenantId,type,source.childType(),source.childId());

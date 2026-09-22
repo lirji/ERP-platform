@@ -71,6 +71,9 @@ public interface SalesMapper {
 
     int markSigned(@Param("tenantId") long tenantId, @Param("shipmentId") long shipmentId);
 
+    /** 来源行财务快照，与原收发货同事务写入。 */
+    int recordLineAmount(@Param("tenantId") long tenantId,@Param("lineId") long lineId,@Param("amount") BigDecimal amount,@Param("currency") String currency);
+
     boolean hasAnyShipment(@Param("tenantId") long tenantId, @Param("orderId") long orderId);
 
     @InterceptorIgnore(tenantLine = "true", dataPermission = "true")

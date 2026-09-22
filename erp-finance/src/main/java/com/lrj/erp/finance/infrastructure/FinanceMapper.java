@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 /** SQL 在 XML；动态表只通过封闭 BillType 的固定分支选择。 */
 @Mapper
 public interface FinanceMapper {
-    BigDecimal netSettled(@Param("tenantId") long tenantId,@Param("customerId") long customerId);
+    BigDecimal releasedCredit(@Param("tenantId") long tenantId,@Param("customerId") long customerId);
     @InterceptorIgnore(tenantLine = "true", dataPermission = "true")
     Long insertBill(@Param("type") BillType type, @Param("bill") Bill bill);
     Bill findSource(@Param("tenantId") long tenantId, @Param("type") BillType type, @Param("sourceType") String sourceType, @Param("sourceId") String sourceId);

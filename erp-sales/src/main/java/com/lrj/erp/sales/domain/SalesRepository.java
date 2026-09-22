@@ -46,6 +46,9 @@ public interface SalesRepository {
     long insertShipmentLine(long tenantId, long shipmentId, long orderLineId, long skuId,
                             String batchNo, BigDecimal qty);
 
+    /** 保存本次来源行金额和币种，供退货累计比例冲红；不改变历史原金额。 */
+    void recordLineAmount(long tenantId,long lineId,BigDecimal amount,String currency);
+
     void markDelivered(long tenantId, long shipmentId);
 
     void markSigned(long tenantId, long shipmentId);

@@ -5,6 +5,7 @@ import com.lrj.erp.kernel.error.ErrorCode;
 /** 销售错误码（ERP-SAL-*）。 */
 public enum SalesErrorCode implements ErrorCode {
 
+    INVALID_RETURN ("ERP-SAL-3010", "退货来源、数量、审批或幂等内容非法", 422),
     ORDER_NOT_FOUND  ("ERP-SAL-3001", "销售订单不存在",                 422),
     LINE_NOT_FOUND   ("ERP-SAL-3002", "销售订单行不存在",               422),
     CREDIT_EXCEEDED  ("ERP-SAL-3003", "客户信用额度不足",               422),

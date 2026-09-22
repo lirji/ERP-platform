@@ -4,10 +4,10 @@ import java.math.BigDecimal;
 /** 财务自己的持久化端口；不访问采购、销售表。 */
 public interface FinanceRepository {
     /** 权威核销净额，供信用硬校验读取。 */
-    BigDecimal netSettled(long tenantId,long customerId);
+    BigDecimal releasedCredit(long tenantId,long customerId);
     record Bill(long id,long tenantId,long companyId,long partnerId,String documentNo,String currency,
                 BigDecimal amount,BigDecimal writtenOffAmount,BigDecimal paidAmount,long version,
-                String sourceDocType,String sourceDocId,String sourceDocNo,String orderId,String orgPath,long createdBy) {}
+                String sourceDocType,String sourceDocId,String sourceDocNo,String orderId,String orgPath,long createdBy,BigDecimal creditedAmount) {}
     record Cash(long id,long billId,String documentNo,String currency,BigDecimal amount,BigDecimal writtenOffAmount,String commandId) {}
     record Settlement(long id,long tenantId,String billType,long billId,long cashId,BigDecimal amount,
                       String currency,Long reversalOf,boolean reversed) {}

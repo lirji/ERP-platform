@@ -132,4 +132,6 @@
         WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
     </select>
 
+    <update id="recordLineAmount">UPDATE sal_shipment_line SET posted_amount=#{amount},currency=#{currency}
+        WHERE tenant_id=#{tenantId} AND id=#{lineId} AND posted_amount IS NULL</update>
 </mapper>
