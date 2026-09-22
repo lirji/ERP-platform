@@ -158,7 +158,8 @@ public class PurchaseOrderService {
                     order.warehouseId(), ol.skuId(), l.batchNo());
             posting.post(new PostingRequest(bucket, PostingDirection.IN, l.quantity(),
                     "PURCHASE_IN", DOC_TYPE_RECEIPT, String.valueOf(receiptId),
-                    String.valueOf(receiptLineId), operatorId));
+                    String.valueOf(receiptLineId), operatorId,
+                    l.quantity().multiply(ol.unitPrice()).setScale(6, RoundingMode.HALF_UP)));
         }
 
         advanceAfterReceipt(tenantId, orderId, operatorId);

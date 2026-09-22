@@ -5,6 +5,8 @@ import com.lrj.erp.kernel.error.ErrorCode;
 /** 库存错误码（ERP-INV-*）。与 contracts/API_P3_INVENTORY.md §7 一一对应。 */
 public enum InventoryErrorCode implements ErrorCode {
 
+    BUCKET_FROZEN      ("ERP-INV-3005", "库存桶正在盘点", 409),
+    INVALID_OPERATION  ("ERP-INV-3006", "库存作业状态或参数不合法", 422),
     INVALID_POSTING     ("ERP-INV-1001", "过账参数非法",             400),
     INSUFFICIENT_STOCK  ("ERP-INV-3001", "可用库存不足",             422),
     RELEASE_EXCEEDS     ("ERP-INV-3002", "释放量超过未消耗的预占量", 422),

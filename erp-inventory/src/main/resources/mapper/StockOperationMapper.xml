@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.inventory.infrastructure.StockOperationMapper">
+    <sql id="bucket">tenant_id=#{b.tenantId} AND company_id=#{b.companyId} AND warehouse_id=#{b.warehouseId}
+      AND location_id=#{b.locationId} AND sku_id=#{b.skuId} AND batch_no=#{b.batchNo}</sql>
+    <select id="insert" resultType="long" affectData="true" flushCache="true">
+      INSERT INTO inv_stock_operation (tenant_id,company_id,document_no,kind,warehouse_id,location_id,sku_id,batch_no,target_warehouse_id,target_location_id,target_batch_no,quantity,snapshot_quantity,inventory_value,reason,state,version,reason_code,created_by) VALUES (#{o.tenantId,jdbcType=BIGINT},#{o.companyId,jdbcType=BIGINT},#{o.documentNo,jdbcType=VARCHAR},#{o.kind,jdbcType=VARCHAR},#{o.warehouseId,jdbcType=BIGINT},#{o.locationId,jdbcType=BIGINT},#{o.skuId,jdbcType=BIGINT},#{o.batchNo,jdbcType=VARCHAR},#{o.targetWarehouseId,jdbcType=BIGINT},#{o.targetLocationId,jdbcType=BIGINT},#{o.targetBatchNo,jdbcType=VARCHAR},#{o.quantity,jdbcType=NUMERIC},#{o.snapshotQuantity,jdbcType=NUMERIC},#{o.inventoryValue,jdbcType=NUMERIC},#{o.reason,jdbcType=VARCHAR},#{o.state,jdbcType=VARCHAR},#{o.version,jdbcType=BIGINT},#{o.reasonCode},#{o.createdBy}) RETURNING id
+    </select>
+    <select id="lock" resultType="com.lrj.erp.inventory.domain.StockOperation" flushCache="true">
+      SELECT id AS "id",tenant_id AS "tenantId",company_id AS "companyId",document_no AS "documentNo",kind AS "kind",warehouse_id AS "warehouseId",location_id AS "locationId",sku_id AS "skuId",batch_no AS "batchNo",target_warehouse_id AS "targetWarehouseId",target_location_id AS "targetLocationId",target_batch_no AS "targetBatchNo",quantity AS "quantity",snapshot_quantity AS "snapshotQuantity",inventory_value AS "inventoryValue",reason AS "reason",state AS "state",version AS "version",reason_code AS "reasonCode",created_by AS "createdBy" FROM inv_stock_operation WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
+    </select>
+    <update id="transition">UPDATE inv_stock_operation SET state=#{next},version=version+1
+      WHERE tenant_id=#{o.tenantId} AND id=#{o.id} AND version=#{o.version} AND state=#{o.state}</update>
+    <update id="freeze">UPDATE inv_balance SET count_document_id=#{id} WHERE <include refid="bucket"/> AND count_document_id IS NULL</update>
+    <update id="unfreeze">UPDATE inv_balance SET count_document_id=NULL WHERE <include refid="bucket"/> AND count_document_id=#{id}</update>
+    <update id="recordCount">UPDATE inv_stock_operation SET quantity=#{difference} WHERE tenant_id=#{o.tenantId} AND id=#{o.id} AND state='DRAFT'</update>
+    <update id="recordValue">UPDATE inv_stock_operation SET inventory_value=#{value,jdbcType=NUMERIC} WHERE tenant_id=#{o.tenantId} AND id=#{o.id}</update>
+    <update id="transit">UPDATE inv_balance SET in_transit=in_transit+#{delta},version=version+1
+      WHERE <include refid="bucket"/> AND in_transit+#{delta} >= 0</update>
+</mapper>

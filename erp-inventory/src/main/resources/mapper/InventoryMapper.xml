@@ -107,4 +107,22 @@
         WHERE id = #{id} AND consumed_qty + released_qty + #{qty} &lt;= reserved_qty
     </update>
 
+    <select id="cost" resultType="com.lrj.erp.inventory.domain.CostSnapshot">
+        SELECT on_hand AS quantity, inventory_value AS inventoryValue, count_document_id AS countDocumentId
+        FROM inv_balance WHERE <include refid="bucketWhere"/>
+    </select>
+    <select id="lockCost" resultType="com.lrj.erp.inventory.domain.CostSnapshot">
+        SELECT on_hand AS quantity, inventory_value AS inventoryValue, count_document_id AS countDocumentId
+        FROM inv_balance WHERE <include refid="bucketWhere"/> FOR UPDATE
+    </select>
+    <update id="updateCost">
+        UPDATE inv_balance SET inventory_value = #{value,jdbcType=NUMERIC}
+        WHERE <include refid="bucketWhere"/>
+    </update>
+    <update id="recordTransactionCost">
+        UPDATE inv_transaction SET signed_value = #{value,jdbcType=NUMERIC}
+        WHERE tenant_id = #{r.bucket.tenantId} AND source_doc_type = #{r.sourceDocType}
+          AND source_doc_id = #{r.sourceDocId} AND source_line_id = #{r.sourceLineId}
+          AND direction = #{r.direction.code}
+    </update>
 </mapper>

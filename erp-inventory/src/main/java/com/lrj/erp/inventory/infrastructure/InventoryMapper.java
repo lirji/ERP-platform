@@ -43,6 +43,18 @@ public interface InventoryMapper {
     /** INV-01 对账：该桶全部流水的代数和。 */
     BigDecimal sumSignedQuantity(@Param("b") InventoryBucket bucket);
 
+    /** 计价必须与库存数量共享同一行锁，避免并发入库使用旧均价。 */
+    com.lrj.erp.inventory.domain.CostSnapshot lockCost(@Param("b") InventoryBucket bucket);
+
+    /** 成本查询不加锁。 */
+    com.lrj.erp.inventory.domain.CostSnapshot cost(@Param("b") InventoryBucket bucket);
+
+    /** 更新桶成本；影响行数必须为一。 */
+    int updateCost(@Param("b") InventoryBucket bucket, @Param("value") BigDecimal value);
+
+    /** 给本事务新建流水记录成本，不改写历史流水。 */
+    int recordTransactionCost(@Param("r") PostingRequest request, @Param("value") BigDecimal value);
+
     // ---------------------------------------------------------------- 预占
 
     int insertReservation(@Param("b") InventoryBucket bucket,

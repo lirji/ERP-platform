@@ -15,4 +15,12 @@ public record PostingRequest(InventoryBucket bucket,
                              String sourceDocType,
                              String sourceDocId,
                              String sourceLineId,
-                             long operatorId) { }
+                             long operatorId,
+                             BigDecimal inboundValue) {
+    /** 兼容既有无成本调用；未知成本不能伪装为零成本。 */
+    public PostingRequest(InventoryBucket bucket, PostingDirection direction, BigDecimal quantity,
+                          String bizType, String sourceDocType, String sourceDocId,
+                          String sourceLineId, long operatorId) {
+        this(bucket, direction, quantity, bizType, sourceDocType, sourceDocId, sourceLineId, operatorId, null);
+    }
+}

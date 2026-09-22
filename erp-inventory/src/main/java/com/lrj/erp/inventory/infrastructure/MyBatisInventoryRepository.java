@@ -58,6 +58,23 @@ public class MyBatisInventoryRepository implements InventoryRepository {
         return mapper.sumSignedQuantity(bucket);
     }
 
+    /** 锁与数量共用同一余额行。 */
+    @Override public CostSnapshot lockCost(InventoryBucket bucket) { return mapper.lockCost(bucket); }
+
+    /** 不存在的空桶成本为零。 */
+    @Override public CostSnapshot cost(InventoryBucket bucket) {
+        CostSnapshot snapshot = mapper.cost(bucket);
+        return snapshot == null ? new CostSnapshot(BigDecimal.ZERO, BigDecimal.ZERO) : snapshot;
+    }
+
+    /** 任一写入异常均使数量、流水和成本一起回滚。 */
+    @Override public void recordCost(PostingRequest request, BigDecimal signedValue, BigDecimal remainingValue) {
+        if (mapper.updateCost(request.bucket(), remainingValue) != 1
+                || mapper.recordTransactionCost(request, signedValue) != 1) {
+            throw new IllegalStateException("成本过账目标缺失");
+        }
+    }
+
     @Override
     public boolean insertReservation(InventoryBucket bucket, String sourceDocType,
                                      String sourceDocId, String sourceLineId, BigDecimal qty) {
