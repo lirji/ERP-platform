@@ -1,0 +1,16 @@
+{
+  "linesPerTradeKind" : 50000,
+  "query" : "totals + first 200 rows + AR/AP aging",
+  "samplesPerKind" : 30,
+  "elapsedSeconds" : 259.935129583,
+  "documentsPerTradeKind" : 8000,
+  "distinctSkus" : 500000,
+  "p95Milliseconds" : {
+    "INVENTORY" : 591.702291,
+    "PURCHASE" : 90.208167,
+    "SALES" : 116.6845,
+    "AR" : 29.931083,
+    "AP" : 25.004958
+  },
+  "inventoryBuckets" : 2000000
+}

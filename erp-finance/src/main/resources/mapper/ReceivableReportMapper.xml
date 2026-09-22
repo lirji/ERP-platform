@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.finance.infrastructure.ReceivableReportMapper">
+    <select id="fingerprint" resultType="string">SELECT count(*)::text || ':' || coalesce(max(id),0)::text || ':' || coalesce(sum(version),0)::text FROM fin_account_receivable WHERE tenant_id=#{tenantId}</select>
+    <select id="page" resultType="com.lrj.erp.kernel.reporting.ReportSource$Row">SELECT id AS source_id,company_id,partner_id,0::bigint AS warehouse_id,0::bigint AS sku_id,NULL::varchar AS batch_no,
+        (created_at AT TIME ZONE 'Asia/Shanghai')::date AS business_date,0::numeric AS quantity,
+        0::numeric AS reserved,0::numeric AS locked,0::numeric AS in_transit,amount,credited_amount AS reduction,
+        written_off_amount AS settled,paid_amount AS paid
+        FROM fin_account_receivable WHERE tenant_id=#{tenantId} AND id>#{afterId} ORDER BY id LIMIT #{limit}</select>
+</mapper>
