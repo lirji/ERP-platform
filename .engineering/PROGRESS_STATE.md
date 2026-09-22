@@ -9,12 +9,16 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P6 AR/AP/Settlement 已完成并交付**，两条后端 MVP 闭环通过；实现 ad38b1f，合并 067b732 已推送 origin/main |
-| 分支 | P5 分支与 P6 分支均已合并推送 main；P5 edd85db，P6 067b732 |
+| 当前 Phase | **P7 执行中**；P7.1 成本切片已验证，P7.2 接续 |
+| 分支 | feat/p7-inventory-reverse；P5/P6 已合并推送 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
-## P6 当前验收
+## P7 当前执行
+
+用户已追加授权继续原路线 P7–P11；P8 条件触发。当前分支 feat/p7-inventory-reverse。退货使用独立红字及待退款记录，原现金和核销事实不改写。P7.1 计价切片完成，127 项测试通过；P7.2 接续，P7 整体尚未验收。
+
+## P6 历史验收
 
 用户 2026-09-22 明确本轮做到 P6 MVP，不扩展 P7–P11。
 七条出口全部 PASS，见 `.engineering/gates/GATE-P6-20260922.md`。

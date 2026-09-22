@@ -52,6 +52,9 @@ public class StockPostingService {
         // 2) 确保桶存在（并发首次过账由唯一索引收敛为一行）
         repository.ensureBucket(request.bucket());
 
+        // 数量和成本持同一行锁，成本均价必须基于本次过账前的数量。
+        CostSnapshot before = repository.lockCost(request.bucket());
+
         // 3) 改余额
         boolean applied;
         if (request.direction() == PostingDirection.IN) {
@@ -70,11 +73,32 @@ public class StockPostingService {
                            "batchNo", request.bucket().batchNo(),
                            "required", qty));
         }
+        BigDecimal signedValue;
+        if (request.direction() == PostingDirection.IN) {
+            signedValue = request.inboundValue();
+        } else {
+            BigDecimal outgoing = before.outgoingValue(qty);
+            signedValue = outgoing == null ? null : outgoing.negate();
+        }
+        BigDecimal afterQuantity = before.quantity().add(signed);
+        BigDecimal remainingValue = afterQuantity.signum() == 0 ? BigDecimal.ZERO
+                : before.inventoryValue() == null || signedValue == null ? null
+                : before.inventoryValue().add(signedValue);
+        repository.recordCost(request, signedValue, remainingValue);
         return true;
     }
 
+    /** 返回成本及对应在库数量，未知成本保留为 NULL。 */
+    public CostSnapshot cost(InventoryBucket bucket) { return repository.cost(bucket); }
+
     private void validate(PostingRequest r) {
-        if (r.quantity() == null || r.quantity().signum() <= 0) {
+        if (r == null || r.bucket() == null || r.direction() == null
+                || r.inboundValue() != null && (r.direction() != PostingDirection.IN
+                || r.inboundValue().signum() < 0 || r.inboundValue().scale() > 6)) {
+            throw new DomainException(InventoryErrorCode.INVALID_POSTING,
+                    Map.of("reason", "入库成本须为最多六位小数的非负金额，出库成本由库存计算"));
+        }
+        if (r.quantity() == null || r.quantity().signum() <= 0 || r.quantity().scale() > 6) {
             throw new DomainException(InventoryErrorCode.INVALID_POSTING,
                     Map.of("field", "quantity", "reason", "数量必须为正；方向由 direction 表达"));
         }

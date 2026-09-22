@@ -39,6 +39,15 @@ public interface InventoryRepository {
     /** INV-01 对账用：该桶全部流水的代数和。 */
     BigDecimal sumSignedQuantity(InventoryBucket bucket);
 
+    /** 锁定数量和成本快照；调用方须在事务内且已确保桶存在。 */
+    CostSnapshot lockCost(InventoryBucket bucket);
+
+    /** 同事务更新余额成本并补齐本次尚未提交的流水成本。 */
+    void recordCost(PostingRequest request, BigDecimal signedValue, BigDecimal remainingValue);
+
+    /** 查询账面成本，NULL 表示依据不足。 */
+    CostSnapshot cost(InventoryBucket bucket);
+
     // ---------------------------------------------------------------- 预占
 
     /** @return false 表示同一来源行已预占（幂等） */
