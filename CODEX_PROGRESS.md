@@ -2,42 +2,44 @@
 
 ## 任务目标
 
-接手 Claude 会话 6ce8fae5-f198-48db-ae23-48bd5dbc80c8，完成 P5/P6 内部服务 MVP 闭环后按用户授权继续 P7–P11。P8 仅真实复杂审批需求触发。退货采用独立红字及待退款，保留原收付款事实。
+接手 Claude 会话 6ce8fae5-f198-48db-ae23-48bd5dbc80c8。P5/P6 内部服务 MVP 闭环后按用户授权继续 P7–P11；P8 按真实复杂审批需求触发。用户确认退货生成独立红字及待退款，保留原收付款事实。
 
 ## 已完成
 
-- P5/P6 内部采购到付款、销售到收款完成并交付。
-- P7 成本、调拨/盘点/调整、退货/红字/退款完成，146 项回归；合并 main 1720e12。
-- P9 五类报表快照、可恢复重建及规模测试完成，151 项回归；合并 af71858。
-- P10 业务审计、慢查询、对账/积压监控和告警脚本完成，155 项回归；合并 e9e6029。
-- P11 员工生命周期缺口补齐、Compose 应用、真实服务演示工具、CI 工作流已实现。
-- P11 本地全量 158 项通过，无失败/错误/跳过；容器重建后 7.440 秒健康（已有库/镜像），演示重复初始化/验证/清理/重复清理/重建全部通过，smoke UP 且业务指标 OK。
+- P5/P6 采购到付款、销售到收款内部服务闭环已验证交付。
+- P7 成本、库存作业、退货/红字/退款完成，146 项回归，main 合并 1720e12。
+- P9 五类可恢复报表快照及规模验证完成，151 项回归，合并 af71858。
+- P10 业务审计、慢查询、对账/积压监控和告警脚本完成，155 项回归，合并 e9e6029。
+- P11 员工生命周期、Compose 应用、真实服务演示工具、CI 完成，158 项全量回归，无失败/错误/跳过；合并 41b6854 已推送 main。
+- 演示重复初始化/验证/清理/重复清理/重建通过；本地健康 UP、监控 OK。CI 镜像构建加应用启动步骤 42 秒。
+- 首次 CI 暴露历史 V2 依赖 V30 的空库问题；新增 B30 累计基线和每次隔离空 schema 的回归，保留历史 SQL 和校验值，未 repair 历史。
+- 任务分支 CI 35681340638、main CI 35681661831 全部 SUCCESS。前者 JUnit artifact 已核对 158 项回归及显式种子验证。后续仅文档回写，不宣称另跑 CI。
+- P8 条件未触发，没有额外建设复杂审批。
 
 ## 已修改文件
 
-- P11：erp-iam 员工服务/Mapper/V120；EmployeeLifecycleIT、PermissionEnforcementIT 租户隔离修复。
-- deploy、.dockerignore、.env.example、test-data、DemoDataSeed、.github/workflows/erp-ci.yml。
-- P11 契约、切片、TEST_RESULT 及进度文档。
-- 工作树另有三个 finance Mapper/Repository 纯格式改动，来源未确认，保留且不纳入本任务提交。
+- P7/P9/P10 实现及 Gate 见对应阶段文档和 Git 历史。
+- P11 erp-iam 员工服务/Mapper/V120；员工和迁移回归测试，PermissionEnforcementIT 按租户清理。
+- deploy、.dockerignore、.env.example、test-data、DemoDataSeed、GitHub workflow、B30 新库基线。
+- 契约、切片、TEST_RESULT、GATE、DELIVERY_RESULT-P7-P11 和进度文档。
+- 并行编辑产生的工作区格式修改未纳入本任务提交，保留；交付记录列出当时清单，恢复时重新查看 git diff。
 
 ## 未完成
 
-- P11 分批提交 b1d930d / 671e88e / e735c06 已推送任务分支，CI 35681340638 全绿；待正常合并/推送 main 并核实主分支 CI。
-- 回写最终 Gate/交付证据。
-- 首次 CI 35681078016 暴露历史 V2 依赖 V30 空库失败；已增加 B30 累计基线和 FreshSchemaMigrationIT，已通过 /tmp/p11-fresh-verify.log 及远程 CI 35681340638。
+本轮已授权 P7–P11 实施与正常 Git 交付完成（P8 条件未触发）。以下是历史产品边界，不宣称完成：生产 OIDC 客户端/回调、销售财务 HTTP 入口与前端、历史 v1 财务金额回填。
 
 ## 当前问题
 
-- 生产 OIDC 客户端/回调、销售财务 HTTP 入口和前端仍未实现；内部闭环不等同生产/UI 验收。
-- 历史 v1 金额不自动猜测回填；未执行生产部署。
-- Git HTTPS token 不含 workflow scope；已验证 SSH 可认证，可用正常 SSH push，禁止强推。
+- 内部服务 MVP 不等同生产/UI 验收，未执行生产部署。
+- 未发现原 Runtime run_id；依据原 ROADMAP 和用户授权执行，未伪造 Runtime Gate。
+- 本地 PostgreSQL erp-pgdata 保留；不得清空共享数据库或卷。演示数据独立租户 990001 / ERP_DEMO_P11。
 
 ## 下一步建议
 
-1. 当前分支 feat/p11-local-delivery，依据上述未完成内容继续。
-2. 真实日志 /tmp/p11-full-verify.log、/tmp/p11-seed-*.log、/tmp/p11-smoke.log，统计已落 TEST_RESULT-P11.json。
-3. 不重复实施 P7/P9/P10；保留 finance 的三个未提交格式改动，保护本地 erp-pgdata 卷。
+1. 当前交付无需重复实施；先查看 `.engineering/gates/DELIVERY_RESULT-P7-P11.md` 与真实 Git 状态。
+2. 本地使用 deploy/up.sh、test-data/init-test-data.sh、test-data/verify-test-data.sh、deploy/smoke.sh。
+3. 如用户另行要求对外产品化，继续解决生产 OIDC/HTTP/前端边界；历史财务补账另行规划，不猜金额。
 
 ## 恢复 Prompt
 
-读取 CODEX_PROGRESS.md，完成 P11 GitHub Actions 实跑和正常 Git 交付，核验真实运行结果并回写文档。无需等待“继续”。只清理带 ERP_DEMO_P11 标记的 990001 演示租户，不清空共享数据库或本地卷。
+读取 CODEX_PROGRESS.md 和 DELIVERY_RESULT-P7-P11.md。P5/P6/P7/P9/P10/P11 已验证并正常合并推送，P8 条件未触发。保护本地并行编辑及数据库卷，不重复实施已交付功能；按用户新的明确目标继续。

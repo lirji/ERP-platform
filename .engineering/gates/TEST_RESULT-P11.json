@@ -217,7 +217,8 @@
     "command": "docker compose up -d --wait --wait-timeout 300",
     "exit_code": 0,
     "elapsed_seconds": 7.44,
-    "scope": "existing local PostgreSQL; recreate app with timezone configuration; build measured separately"
+    "scope": "existing local PostgreSQL; recreate app with timezone configuration; build measured separately",
+    "ciBuildAndHealthySeconds": 42
   },
   "seed": {
     "init": "PASS",
@@ -447,6 +448,86 @@
         "errors": 0,
         "skipped": 0
       }
+    ],
+    "steps": [
+      {
+        "completedAt": "2026-09-22T02:57:02Z",
+        "conclusion": "success",
+        "name": "Set up job",
+        "startedAt": "2026-09-22T02:57:01Z"
+      },
+      {
+        "completedAt": "2026-09-22T02:57:03Z",
+        "conclusion": "success",
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "startedAt": "2026-09-22T02:57:02Z"
+      },
+      {
+        "completedAt": "2026-09-22T02:57:04Z",
+        "conclusion": "success",
+        "name": "Run actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6",
+        "startedAt": "2026-09-22T02:57:03Z"
+      },
+      {
+        "completedAt": "2026-09-22T02:57:04Z",
+        "conclusion": "success",
+        "name": "Prepare isolated local credentials",
+        "startedAt": "2026-09-22T02:57:04Z"
+      },
+      {
+        "completedAt": "2026-09-22T02:57:17Z",
+        "conclusion": "success",
+        "name": "Start real PostgreSQL",
+        "startedAt": "2026-09-22T02:57:04Z"
+      },
+      {
+        "completedAt": "2026-09-22T02:58:26Z",
+        "conclusion": "success",
+        "name": "Unit architecture and real database P2P O2C tests",
+        "startedAt": "2026-09-22T02:57:17Z"
+      },
+      {
+        "completedAt": "2026-09-22T02:59:08Z",
+        "conclusion": "success",
+        "name": "Build and start backend within five minutes",
+        "startedAt": "2026-09-22T02:58:26Z"
+      },
+      {
+        "completedAt": "2026-09-22T03:00:08Z",
+        "conclusion": "success",
+        "name": "Repeatable demo data and exact cleanup",
+        "startedAt": "2026-09-22T02:59:08Z"
+      },
+      {
+        "completedAt": "2026-09-22T03:00:10Z",
+        "conclusion": "success",
+        "name": "Upload test evidence",
+        "startedAt": "2026-09-22T03:00:08Z"
+      },
+      {
+        "completedAt": "2026-09-22T03:00:11Z",
+        "conclusion": "success",
+        "name": "Remove this ephemeral CI environment",
+        "startedAt": "2026-09-22T03:00:10Z"
+      },
+      {
+        "completedAt": "2026-09-22T03:00:14Z",
+        "conclusion": "success",
+        "name": "Post Run actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6",
+        "startedAt": "2026-09-22T03:00:11Z"
+      },
+      {
+        "completedAt": "2026-09-22T03:00:14Z",
+        "conclusion": "success",
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "startedAt": "2026-09-22T03:00:14Z"
+      },
+      {
+        "completedAt": "2026-09-22T03:00:14Z",
+        "conclusion": "success",
+        "name": "Complete job",
+        "startedAt": "2026-09-22T03:00:14Z"
+      }
     ]
   },
   "ciFirstAttempt": {
@@ -454,5 +535,12 @@
     "result": "FAIL",
     "cause": "历史 V2 依赖 V30，空库顺序错误",
     "remedy": "B30 基线 + FreshSchemaMigrationIT，不改历史校验值"
+  },
+  "mainCi": {
+    "result": "PASS",
+    "runId": 35681661831,
+    "commit": "41b6854a0f5e47f84e62cea36c3031761d1e9859",
+    "url": "https://github.com/lirji/ERP-platform/actions/runs/35681661831",
+    "scope": "合并版本全部步骤通过；后续仅文档记录，不宣称文档提交另有 CI"
   }
 }
