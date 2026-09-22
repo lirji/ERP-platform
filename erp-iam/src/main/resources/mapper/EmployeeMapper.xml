@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.iam.repository.EmployeeMapper">
+    <sql id="cols">id,tenant_id,company_id,org_id,employee_no,name,user_id,status,version</sql>
+    <select id="findCode" resultType="com.lrj.erp.iam.repository.EmployeeMapper$Employee">
+        SELECT <include refid="cols"/> FROM iam_employee WHERE tenant_id=#{tenantId} AND employee_no=#{code}
+    </select>
+    <select id="lock" resultType="com.lrj.erp.iam.repository.EmployeeMapper$Employee" flushCache="true">
+        SELECT <include refid="cols"/> FROM iam_employee WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
+    </select>
+    <select id="validOrg" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM iam_org c JOIN iam_org d ON d.tenant_id=c.tenant_id
+            WHERE c.tenant_id=#{tenantId} AND c.id=#{companyId} AND c.org_type='COMPANY' AND c.enabled
+              AND d.id=#{orgId} AND d.org_type='DEPT' AND d.enabled AND d.org_path LIKE c.org_path || '%')
+    </select>
+    <select id="insert" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO iam_employee(tenant_id,company_id,org_id,employee_no,name)
+        VALUES (#{tenantId},#{companyId},#{orgId},#{code},#{name}) RETURNING id
+    </select>
+    <update id="bind">UPDATE iam_employee SET user_id=#{userId},version=version+1
+        WHERE tenant_id=#{e.tenantId} AND id=#{e.id} AND status='ACTIVE' AND version=#{e.version} AND user_id IS NULL
+        AND EXISTS (SELECT 1 FROM iam_user u WHERE u.tenant_id=#{e.tenantId} AND u.id=#{userId}
+                    AND u.company_id=#{e.companyId} AND u.org_id=#{e.orgId} AND u.enabled)</update>
+    <update id="leave">UPDATE iam_employee SET status='LEFT',left_at=clock_timestamp(),version=version+1
+        WHERE tenant_id=#{e.tenantId} AND id=#{e.id} AND status='ACTIVE' AND version=#{e.version}</update>
+    <update id="disableUser">UPDATE iam_user SET enabled=FALSE WHERE tenant_id=#{tenantId} AND id=#{userId}</update>
+</mapper>
