@@ -31,6 +31,10 @@ class OrderToShipE2EIT extends AbstractPostgresIT {
     @Autowired JdbcTemplate jdbc;
 
     @BeforeEach void setup() {
+        for (String table : List.of("fin_settlement_record","fin_payment","fin_receipt","fin_account_payable","fin_account_receivable")) {
+            jdbc.update("DELETE FROM " + table + " WHERE tenant_id=?", T);
+        }
+        jdbc.update("INSERT INTO md_currency (tenant_id,code,name,is_base,enabled) VALUES (?, 'CNY','人民币',TRUE,TRUE) ON CONFLICT DO NOTHING", T);
         for (String table : List.of("doc_relation", "erp_outbox_message", "erp_state_transition", "apr_instance",
                 "sal_shipment_line", "sal_shipment", "sal_order_line", "sal_order", "sal_credit_account",
                 "inv_reservation", "inv_transaction", "inv_balance", "num_sequence", "num_rule")) {
@@ -38,6 +42,9 @@ class OrderToShipE2EIT extends AbstractPostgresIT {
         }
         jdbc.update("INSERT INTO num_rule (tenant_id,business_type,prefix,seq_width) VALUES (?, 'SO','SO',6),(?,'OUT','OUT',6)", T,T);
         posting.post(new PostingRequest(bucket(), PostingDirection.IN, bd("100"), "OPENING", "TEST", "1", "1", USER));
+        for (String code : List.of("AR","AP","RCV","PAY")) {
+            jdbc.update("INSERT INTO num_rule (tenant_id,business_type,prefix,seq_width) VALUES (?,?,?,6) ON CONFLICT DO NOTHING", T,code,code);
+        }
     }
     private BigDecimal bd(String value) { return new BigDecimal(value); }
     private InventoryBucket bucket() { return InventoryBucket.of(T,C,W,SKU); }

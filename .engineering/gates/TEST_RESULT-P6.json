@@ -1,0 +1,168 @@
+{
+  "slice_id": "P6",
+  "overall": "PASS",
+  "command": "mvn -q clean verify",
+  "exit_code": 0,
+  "source_sha256": "0e0ed3f66a20cf0d55748a21e2e0ef980ac3ee1454c38241652f9631ed41f4f5",
+  "database": "PostgreSQL 16.15 / erp_it",
+  "outbox_local": {
+    "samples": 20,
+    "poll_interval_ms": 1000,
+    "p95_seconds": 1.13772545
+  },
+  "suites": [
+    {
+      "name": "com.lrj.erp.it.AuditTrailIT",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.DataScopePushdownIT",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.DocumentStateConcurrencyIT",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.FinanceSettlementE2EIT",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.InventoryInvariantsIT",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.MasterDataRulesIT",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.NumberGeneratorConcurrencyIT",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.OrderToShipE2EIT",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.OutboxLatencyIT",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.OutboxRetryAndDlqIT",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.PermissionEnforcementIT",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.ProcureToReceiveE2EIT",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.app.observability.TraceIdFilterTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.ArchRuleEnforcementNegativeTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.AvailableIsDerivedTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.CodingConventionArchitectureTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.MigrationCommentConventionTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.ModuleDependencyArchitectureTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.ModuleDependencyMatrixTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.TableOwnershipArchitectureTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.kernel.statemachine.StateMachineTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "unverified": [
+    "Production OIDC and HTTP sales/finance endpoints",
+    "Historical v1 financial backfill",
+    "Production deployment",
+    "Remote CI"
+  ]
+}

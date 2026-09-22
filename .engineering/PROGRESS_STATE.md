@@ -9,16 +9,25 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P5 Order to Ship 已完成本地验收**（GATE-P5-20260922 = PASS_WITH_ASSUMPTIONS），下一步交付 P5 / P6 |
-| 分支 | `feat/p5-order-to-ship`，P5 验证通过，提交合并推送待执行 |
+| 当前 Phase | **P6 AR/AP/Settlement 已完成本地验收**，两条后端 MVP 闭环通过；Git 交付待完成 |
+| 分支 | `feat/p6-finance-settlement`；P5 已合并推送 edd85db，P6 待交付 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
-## P5 当前验收
+## P6 当前验收
+
+用户 2026-09-22 明确本轮做到 P6 MVP，不扩展 P7–P11。
+七条出口全部 PASS，见 `.engineering/gates/GATE-P6-20260922.md`。
+`mvn -q clean verify`：33 单元/架构 + 87 集成 = **120**，失败/错误/跳过均 0。
+后台 Outbox：20 样本、1 秒间隔，P95 1.13772545 秒（仅本地观测）。
+源码指纹和逐套件统计见 TEST_RESULT-P6.json。
+生产 OIDC、销售/财务 HTTP 入口、历史 v1 财务补账仍未完成；没有执行生产部署。
+
+## P5 历史验收
 
 五项阶段出口及双向追溯全部 PASS，见 `.engineering/gates/GATE-P5-20260922.md`。
 `mvn -q clean verify` 退出码 0；33 单元/架构 + 71 集成 = **104**，无失败或跳过。
-生产 OIDC、HTTP 销售入口、P6 财务闭环未完成；内部用例限制见 `API_P5_SALES.md`。
+P5 当时尚未完成 P6；当前 P6 结果见上节。生产 OIDC、HTTP 销售入口仍未完成。
 
 ## P4 出口条件实测结果（GATE-P4-20260921）
 
@@ -118,7 +127,7 @@ P3 的预占链（预占→部分消耗→释放）已就绪，P5 直接建立�
 - 取消订单必须**同时**断言预占表与余额都正确，而不只看其一；
 - 信用超限被拦截后，审批放行才可下单。
 
-下一业务阶段为 P6 应收应付与核销，需消费采购入库和销售出库事件闭合两条链路。
+P6 两条内部业务闭环已验证，下一步完成 Git 交付；后续生产能力与 P7–P11 不属于本次目标。
 
 可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
 

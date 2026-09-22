@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import com.lrj.erp.kernel.events.PostedDocument;
+import com.lrj.erp.masterdata.service.CurrencyService;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +43,7 @@ public class PurchaseOrderService {
     private final DocumentStateService documentState;
     /** 关系图通过事件构建：采购不得依赖 erp-document（依赖矩阵由 ModuleDependencyMatrixTest 强制）。 */
     private final OutboxRecorder outbox;
+    private final CurrencyService currencies;
     private final StockPostingService posting;
 
     private final StateMachine<ProcurementRepository.OrderHeader> machine =
@@ -50,7 +54,8 @@ public class PurchaseOrderService {
                                 ApprovalPort approvalPort,
                                 DocumentStateService documentState,
                                 OutboxRecorder outbox,
-                                StockPostingService posting) {
+                                StockPostingService posting, CurrencyService currencies) {
+        this.currencies = currencies;
         this.repository = repository;
         this.numberGenerator = numberGenerator;
         this.approvalPort = approvalPort;
@@ -119,9 +124,10 @@ public class PurchaseOrderService {
         long receiptId = repository.insertReceipt(tenantId, order.companyId(), receiptNo,
                 orderId, order.warehouseId(), order.orgPath(), operatorId);
 
+        BigDecimal postedAmount = BigDecimal.ZERO;
         for (ReceiptLine l : lines) {
             ProcurementRepository.OrderLine ol = repository.findOrderLine(tenantId, l.orderLineId());
-            if (ol == null) {
+            if (ol == null || ol.orderId() != orderId) {
                 throw new DomainException(ProcurementErrorCode.LINE_NOT_FOUND,
                         Map.of("orderLineId", l.orderLineId()));
             }
@@ -139,6 +145,9 @@ public class PurchaseOrderService {
                                "alreadyReceived", ol.receivedQty(),
                                "attempted", l.quantity()));
             }
+
+            postedAmount = postedAmount.add(ol.receivedQty().add(l.quantity()).multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)
+                    .subtract(ol.receivedQty().multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)));
 
             long receiptLineId = repository.insertReceiptLine(tenantId, receiptId,
                     l.orderLineId(), ol.skuId(), l.batchNo(), l.quantity());
@@ -158,14 +167,11 @@ public class PurchaseOrderService {
         //   · erp-document 据此构建单据关系图（P4 出口条件 ⑤ 双向可追溯）
         //   · erp-finance 将在 P6 据此生成应付
         // 走 Outbox 而不是直接调用：采购不得依赖 erp-document / erp-finance（依赖矩阵）。
-        outbox.record(tenantId, "PurchaseReceipt", String.valueOf(receiptId),
-                "PurchaseReceiptPosted.v1", Map.of(
-                        "parentType", DOC_TYPE_ORDER,
-                        "parentId", String.valueOf(orderId),
-                        "parentNo", order.orderNo(),
-                        "childType", DOC_TYPE_RECEIPT,
-                        "childId", String.valueOf(receiptId),
-                        "childNo", receiptNo));
+        outbox.record(tenantId, "PurchaseReceipt", String.valueOf(receiptId), PostedDocument.PURCHASE,
+                new PostedDocument(DOC_TYPE_ORDER, String.valueOf(orderId), order.orderNo(),
+                        DOC_TYPE_RECEIPT, String.valueOf(receiptId), receiptNo,
+                        order.companyId(), order.supplierId(), postedAmount, currencies.requireBase(tenantId),
+                        order.orgPath(), operatorId));
         return receiptId;
     }
 
@@ -235,7 +241,7 @@ public class PurchaseOrderService {
     }
 
     private ProcurementRepository.OrderHeader requireOrder(long tenantId, long orderId) {
-        ProcurementRepository.OrderHeader o = repository.findOrder(tenantId, orderId);
+        ProcurementRepository.OrderHeader o = repository.lockOrder(tenantId, orderId);
         if (o == null) {
             throw new DomainException(ProcurementErrorCode.ORDER_NOT_FOUND, Map.of("orderId", orderId));
         }

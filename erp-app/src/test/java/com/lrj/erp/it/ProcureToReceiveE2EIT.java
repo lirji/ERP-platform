@@ -46,6 +46,10 @@ class ProcureToReceiveE2EIT extends AbstractPostgresIT {
 
     @BeforeEach
     void setUp() {
+        for (String table : List.of("fin_settlement_record","fin_payment","fin_receipt","fin_account_payable","fin_account_receivable")) {
+            jdbc.update("DELETE FROM " + table + " WHERE tenant_id=?", TENANT);
+        }
+        jdbc.update("INSERT INTO md_currency (tenant_id,code,name,is_base,enabled) VALUES (?, 'CNY','人民币',TRUE,TRUE) ON CONFLICT DO NOTHING", TENANT);
         jdbc.update("DELETE FROM doc_relation WHERE tenant_id = ?", TENANT);
         jdbc.update("DELETE FROM erp_outbox_message WHERE tenant_id = ?", TENANT);
         jdbc.update("DELETE FROM erp_state_transition WHERE tenant_id = ?", TENANT);
@@ -60,6 +64,9 @@ class ProcureToReceiveE2EIT extends AbstractPostgresIT {
         jdbc.update("DELETE FROM num_rule WHERE tenant_id = ?", TENANT);
         jdbc.update("INSERT INTO num_rule (tenant_id, business_type, prefix, seq_width) "
                 + "VALUES (?, 'PO', 'PO', 6), (?, 'IN', 'IN', 6)", TENANT, TENANT);
+        for (String code : List.of("AR","AP","RCV","PAY")) {
+            jdbc.update("INSERT INTO num_rule (tenant_id,business_type,prefix,seq_width) VALUES (?,?,?,6) ON CONFLICT DO NOTHING", TENANT,code,code);
+        }
     }
 
     private long newApprovedOrder(String qty) {

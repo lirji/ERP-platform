@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.finance.infrastructure.FinanceMapper">
+    <!-- 白名单常量表名；禁止使用调用方提供的字符串插值。 -->
+    <sql id="billTable"><choose><when test="type.code() == 'AR'">fin_account_receivable</when><otherwise>fin_account_payable</otherwise></choose></sql>
+    <sql id="cashTable"><choose><when test="type.code() == 'AR'">fin_receipt</when><otherwise>fin_payment</otherwise></choose></sql>
+    <sql id="billCols">id,tenant_id,company_id,partner_id,document_no,currency,amount,written_off_amount,paid_amount,version,source_doc_type,source_doc_id,source_doc_no,order_id,org_path,created_by</sql>
+    <sql id="cashCols">id,bill_id,document_no,currency,amount,written_off_amount,command_id</sql>
+    <select id="insertBill" resultType="java.lang.Long" affectData="true" flushCache="true">
+        INSERT INTO <include refid="billTable"/>
+        (tenant_id,company_id,partner_id,document_no,currency,amount,source_doc_type,source_doc_id,source_doc_no,order_id,org_path,created_by)
+        VALUES (#{bill.tenantId},#{bill.companyId},#{bill.partnerId},#{bill.documentNo},#{bill.currency},#{bill.amount},#{bill.sourceDocType},#{bill.sourceDocId},#{bill.sourceDocNo},#{bill.orderId},#{bill.orgPath},#{bill.createdBy})
+        ON CONFLICT (tenant_id,source_doc_type,source_doc_id) DO NOTHING RETURNING id
+    </select>
+    <select id="findSource" resultType="com.lrj.erp.finance.domain.FinanceRepository$Bill">
+        SELECT <include refid="billCols"/> FROM <include refid="billTable"/>
+        WHERE tenant_id=#{tenantId} AND source_doc_type=#{sourceType} AND source_doc_id=#{sourceId}
+    </select>
+    <select id="findBill" resultType="com.lrj.erp.finance.domain.FinanceRepository$Bill" useCache="false" flushCache="true">
+        SELECT <include refid="billCols"/> FROM <include refid="billTable"/> WHERE tenant_id=#{tenantId} AND id=#{billId}
+        <if test="lock">FOR UPDATE</if>
+    </select>
+    <select id="findCash" resultType="com.lrj.erp.finance.domain.FinanceRepository$Cash" useCache="false" flushCache="true">
+        SELECT <include refid="cashCols"/> FROM <include refid="cashTable"/> WHERE tenant_id=#{tenantId} AND id=#{cashId}
+        <if test="lock">FOR UPDATE</if>
+    </select>
+    <select id="findCommand" resultType="com.lrj.erp.finance.domain.FinanceRepository$Cash">
+        SELECT <include refid="cashCols"/> FROM <include refid="cashTable"/> WHERE tenant_id=#{tenantId} AND command_id=#{commandId}
+    </select>
+    <select id="insertCash" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO <include refid="cashTable"/>
+        (tenant_id,company_id,partner_id,document_no,currency,amount,bill_id,command_id,org_path,created_by)
+        VALUES (#{tenantId},#{bill.companyId},#{bill.partnerId},#{documentNo},#{bill.currency},#{amount},#{bill.id},#{commandId},#{bill.orgPath},#{operatorId}) RETURNING id
+    </select>
+    <update id="addPaid">
+        UPDATE <include refid="billTable"/> SET paid_amount=paid_amount+#{amount},version=version+1
+        WHERE tenant_id=#{tenantId} AND id=#{billId} AND #{amount}>0 AND paid_amount+#{amount} &lt;= amount
+    </update>
+    <update id="addBillWrittenOff">
+        UPDATE <include refid="billTable"/> SET written_off_amount=written_off_amount+#{amount},version=version+1
+        WHERE tenant_id=#{tenantId} AND id=#{billId} AND written_off_amount+#{amount} BETWEEN 0 AND paid_amount
+    </update>
+    <update id="addCashWrittenOff">
+        UPDATE <include refid="cashTable"/> SET written_off_amount=written_off_amount+#{amount},version=version+1
+        WHERE tenant_id=#{tenantId} AND id=#{cashId} AND written_off_amount+#{amount} BETWEEN 0 AND amount
+    </update>
+    <select id="insertSettlement" resultType="long" affectData="true" flushCache="true">
+        INSERT INTO fin_settlement_record (tenant_id,bill_type,bill_id,cash_id,amount,currency,reversal_of,created_by,reason)
+        VALUES (#{tenantId},#{type.code},#{billId},#{cashId},#{amount},#{currency},#{reversalOf},#{operatorId},#{reason}) RETURNING id
+    </select>
+    <select id="findSettlement" resultType="com.lrj.erp.finance.domain.FinanceRepository$Settlement" useCache="false" flushCache="true">
+        SELECT id,tenant_id,bill_type,bill_id,cash_id,amount,currency,reversal_of,reversed
+        FROM fin_settlement_record WHERE tenant_id=#{tenantId} AND id=#{settlementId}
+    </select>
+    <select id="hasActivePair" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM fin_settlement_record WHERE tenant_id=#{tenantId} AND bill_type=#{type.code}
+        AND bill_id=#{billId} AND cash_id=#{cashId} AND reversal_of IS NULL AND reversed=FALSE)
+    </select>
+    <update id="markReversed">
+        UPDATE fin_settlement_record SET reversed=TRUE WHERE tenant_id=#{tenantId} AND id=#{settlementId}
+        AND reversed=FALSE AND reversal_of IS NULL
+    </update>
+    <select id="netSettled" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(s.amount),0) FROM fin_settlement_record s
+        JOIN fin_account_receivable b ON b.tenant_id=s.tenant_id AND b.id=s.bill_id
+        WHERE s.tenant_id=#{tenantId} AND s.bill_type='AR' AND b.partner_id=#{customerId}
+    </select>
+</mapper>

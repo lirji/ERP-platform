@@ -14,9 +14,9 @@
 
 ## 事件与持久化
 
-`ShipmentPosted.v1` 在出库事务写入，沿用 EVENT_CATALOG 的应收触发点；签收不是生成应收的触发点。
+P5 的 `ShipmentPosted.v1`（P6 起新事件为 v2）在出库事务写入，沿用 EVENT_CATALOG 的应收触发点；签收不是生成应收的触发点。
 当前 payload 的 `parentType/parentId/parentNo/childType/childId/childNo` 支持销售订单与发货单双向追溯。
-P6 财务所需的金额、币种、客户等载荷尚待 P6 细化，当前不能声称已完成财务闭环。
+P6 新增完整 v2 财务载荷与闭环，见 API_P6_FINANCE.md；历史 v1 仍只用于关系投影。
 
 V80 为 Claude 留下的五张销售表；新增 V81 补信用审批引用唯一约束、金额非负和签收前置约束。未改写 V80，以兼容可能已执行该迁移的环境。迁移仅在隔离 `erp_it` 中验证，未执行生产部署。
 
