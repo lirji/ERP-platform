@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.finance.infrastructure.ReceivableIntegrityMapper">
+    <select id="scan" resultType="com.lrj.erp.kernel.monitoring.IntegrityProbe$Batch">
+        WITH page AS MATERIALIZED (SELECT * FROM fin_account_receivable WHERE id>#{afterId} ORDER BY id LIMIT #{limit})
+        SELECT coalesce(max(b.id),#{afterId}) AS cursor,count(*) AS rows,
+          count(*) FILTER (WHERE b.written_off_amount != coalesce((SELECT sum(s.amount) FROM fin_settlement_record s WHERE s.tenant_id=b.tenant_id AND s.bill_type='AR' AND s.bill_id=b.id),0)
+          OR b.paid_amount != coalesce((SELECT sum(c.amount) FROM fin_receipt c WHERE c.tenant_id=b.tenant_id AND c.bill_id=b.id),0)
+          OR b.credited_amount != coalesce((SELECT -sum(c.amount) FROM fin_credit_adjustment c WHERE c.tenant_id=b.tenant_id AND c.bill_type='AR' AND c.bill_id=b.id),0)) AS mismatches FROM page b
+    </select>
+</mapper>

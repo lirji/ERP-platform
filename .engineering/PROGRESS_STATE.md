@@ -9,12 +9,16 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P9 Gate PASS**；151 项全量回归及原规模性能门槛通过，下一阶段 P10 |
+| 当前 Phase | **P10 Gate PASS**；155 项全量回归，下一阶段 P11 |
 | 分支 | feat/p7-inventory-reverse；P5/P6 已合并推送 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
-## P9 当前验收
+## P10 当前验收
+
+提交后业务审计、脱敏慢查询、库存/AR/AP对账、Outbox积压/死信/新鲜度指标及可执行告警检查已通过155项回归；见 GATE-P10-20260922.md。下一阶段 P11。
+
+## P9 历史验收
 
 库存/采购/销售/AR/AP 五类快照、检查点、原子发布、取消清理、CLI 已实现；151 项全量回归通过。规模测试 200 万桶、50 万 SKU 维度，五类 P95 低于 1s；证据 GATE-P9-20260922.md。P10/P11 尚未完成。
 

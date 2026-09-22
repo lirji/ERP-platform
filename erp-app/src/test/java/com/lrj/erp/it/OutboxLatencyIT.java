@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** 启用真实后台轮询，记录本地样本的投递滞后；不是生产容量承诺。 */
-@SpringBootTest(classes=ErpApplication.class,properties={"erp.outbox.scheduling-enabled=true","erp.outbox.poll-interval-ms=1000"})
+@SpringBootTest(classes=ErpApplication.class,properties={"erp.outbox.scheduling-enabled=true","erp.outbox.poll-interval-ms=1000","erp.monitoring.enabled=false"})
 @DirtiesContext(classMode=DirtiesContext.ClassMode.AFTER_CLASS)
 class OutboxLatencyIT extends AbstractPostgresIT {
     @Autowired JdbcTemplate jdbc;

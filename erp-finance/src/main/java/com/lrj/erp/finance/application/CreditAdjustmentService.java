@@ -19,7 +19,9 @@ public class CreditAdjustmentService {
     private final CreditRepository credits;
     private final NumberGenerator numbers;
     private final OutboxRecorder outbox;
-    public CreditAdjustmentService(FinanceRepository bills,CreditRepository credits,NumberGenerator numbers,OutboxRecorder outbox) {
+    private final com.lrj.erp.kernel.monitoring.BusinessAudit audit;
+    public CreditAdjustmentService(FinanceRepository bills,CreditRepository credits,NumberGenerator numbers,OutboxRecorder outbox,com.lrj.erp.kernel.monitoring.BusinessAudit audit) {
+        this.audit=audit;
         this.bills=bills;this.credits=credits;this.numbers=numbers;this.outbox=outbox;
     }
     /** 与收付款共用原往来单行锁；来源未到达时抛错交给 Outbox 重试。 */
@@ -47,6 +49,7 @@ public class CreditAdjustmentService {
         outbox.record(tenantId,"CreditAdjustment",""+id,"CreditAdjustmentCreated.v1",
                 Map.of("parentType",event.returnType(),"parentId",event.returnId(),"parentNo",event.returnNo(),
                         "childType","CREDIT_ADJUSTMENT","childId",""+id,"childNo",no));
+        audit.record(tenantId,event.operatorId(),"CREDIT_ADJUSTMENT",""+id,no,"CREATED");
         return id;
     }
 
@@ -69,6 +72,7 @@ public class CreditAdjustmentService {
         long id=credits.insertRefund(tenantId,creditId,amount,currency,commandId,operator);
         outbox.record(tenantId,"Refund",""+id,"RefundRecorded.v1",
                 Map.of("creditId",creditId,"billType",c.billType(),"amount",amount,"currency",currency,"operatorId",operator));
+        audit.record(tenantId,operator,"REFUND",""+id,c.documentNo(),"REFUND_RECORDED");
         return id;
     }
     /** 查询红字单及待退/已退金额；查询必须限定租户。 */

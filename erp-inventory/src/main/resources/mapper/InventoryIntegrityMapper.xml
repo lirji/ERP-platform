@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.inventory.infrastructure.InventoryIntegrityMapper">
+    <select id="scan" resultType="com.lrj.erp.kernel.monitoring.IntegrityProbe$Batch">
+        WITH page AS MATERIALIZED (SELECT * FROM inv_balance WHERE id>#{afterId} ORDER BY id LIMIT #{limit})
+        SELECT coalesce(max(b.id),#{afterId}) AS cursor,count(*) AS rows,
+          count(*) FILTER (WHERE b.on_hand != coalesce((SELECT sum(t.signed_quantity) FROM inv_transaction t
+          WHERE t.tenant_id=b.tenant_id AND t.company_id=b.company_id AND t.warehouse_id=b.warehouse_id
+          AND t.location_id=b.location_id AND t.sku_id=b.sku_id AND t.batch_no=b.batch_no),0)) AS mismatches FROM page b
+    </select>
+</mapper>

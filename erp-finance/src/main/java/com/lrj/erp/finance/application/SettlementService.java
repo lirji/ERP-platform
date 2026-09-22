@@ -20,7 +20,9 @@ public class SettlementService {
     private final FinanceRepository repository;
     private final OutboxRecorder outbox;
     private final NumberGenerator numbering;
-    public SettlementService(FinanceRepository repository,OutboxRecorder outbox,NumberGenerator numbering){
+    private final com.lrj.erp.kernel.monitoring.BusinessAudit audit;
+    public SettlementService(FinanceRepository repository,OutboxRecorder outbox,NumberGenerator numbering,com.lrj.erp.kernel.monitoring.BusinessAudit audit){
+        this.audit=audit;
         this.repository=repository;this.outbox=outbox;this.numbering=numbering;
     }
 
@@ -44,6 +46,7 @@ public class SettlementService {
         }
         outbox.record(tenantId,type.billDocumentType(),""+id,type==BillType.AR?"ReceivableCreated.v1":"PayableCreated.v1",
                 relation(source.childType(),source.childId(),source.childNo(),type.billDocumentType(),""+id,no));
+        audit.record(tenantId,source.operatorId(),type.billDocumentType(),""+id,no,"CREATED");
         return id;
     }
 
@@ -72,6 +75,7 @@ public class SettlementService {
         long id=repository.insertCash(tenantId,type,bill,no,amount,commandId,operatorId);
         outbox.record(tenantId,type.cashDocumentType(),""+id,type==BillType.AR?"ReceiptCompleted.v1":"PaymentCompleted.v1",
                 relation(type.billDocumentType(),""+billId,bill.documentNo(),type.cashDocumentType(),""+id,no));
+        audit.record(tenantId,operatorId,type.cashDocumentType(),""+id,no,"CASH_RECORDED");
         return id;
     }
 
@@ -87,6 +91,7 @@ public class SettlementService {
         if(!repository.addWrittenOff(tenantId,type,billId,cashId,amount))throw error(EXCEEDS);
         long id=repository.insertSettlement(tenantId,type,billId,cashId,amount,bill.currency(),null,operatorId,null);
         settlementEvent(tenantId,type,bill,cashId,id,amount,false);
+        audit.record(tenantId,operatorId,"SETTLEMENT",""+id,bill.documentNo(),"APPLIED");
         return id;
     }
 
@@ -105,6 +110,7 @@ public class SettlementService {
         if(!repository.addWrittenOff(tenantId,type,bill.id(),original.cashId(),delta))throw error(EXCEEDS);
         long id=repository.insertSettlement(tenantId,type,bill.id(),original.cashId(),delta,bill.currency(),settlementId,operatorId,reason);
         settlementEvent(tenantId,type,bill,original.cashId(),id,delta,true);
+        audit.record(tenantId,operatorId,"SETTLEMENT",""+id,bill.documentNo(),"REVERSED");
         return id;
     }
 

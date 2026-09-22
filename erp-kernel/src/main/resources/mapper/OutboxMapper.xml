@@ -44,4 +44,10 @@
         WHERE id = #{id}
     </update>
 
+    <select id="health" resultType="com.lrj.erp.kernel.outbox.OutboxHealthService$Health">
+        SELECT (SELECT count(*) FROM erp_outbox_message WHERE status='PENDING') AS pending,
+               (SELECT count(*) FROM erp_outbox_message WHERE status='DEAD') AS dead,
+               coalesce((SELECT greatest(0,extract(epoch FROM clock_timestamp()-min(created_at)))
+                         FROM erp_outbox_message WHERE status='PENDING'),0) AS oldest_seconds
+    </select>
 </mapper>
