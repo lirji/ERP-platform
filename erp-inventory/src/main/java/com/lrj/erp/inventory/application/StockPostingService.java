@@ -55,6 +55,10 @@ public class StockPostingService {
         // 数量和成本持同一行锁，成本均价必须基于本次过账前的数量。
         CostSnapshot before = repository.lockCost(request.bucket());
 
+        if (before.countDocumentId() != null) {
+            throw new DomainException(InventoryErrorCode.BUCKET_FROZEN);
+        }
+
         // 3) 改余额
         boolean applied;
         if (request.direction() == PostingDirection.IN) {

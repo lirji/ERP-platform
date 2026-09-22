@@ -108,11 +108,11 @@
     </update>
 
     <select id="cost" resultType="com.lrj.erp.inventory.domain.CostSnapshot">
-        SELECT on_hand AS quantity, inventory_value AS inventoryValue
+        SELECT on_hand AS quantity, inventory_value AS inventoryValue, count_document_id AS countDocumentId
         FROM inv_balance WHERE <include refid="bucketWhere"/>
     </select>
     <select id="lockCost" resultType="com.lrj.erp.inventory.domain.CostSnapshot">
-        SELECT on_hand AS quantity, inventory_value AS inventoryValue
+        SELECT on_hand AS quantity, inventory_value AS inventoryValue, count_document_id AS countDocumentId
         FROM inv_balance WHERE <include refid="bucketWhere"/> FOR UPDATE
     </select>
     <update id="updateCost">
