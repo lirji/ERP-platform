@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.reporting.infrastructure.ReportMapper">
+    <sql id="job">id,tenant_id,kind,fingerprint,cursor_id,state,created_at,finished_at</sql>
+    <select id="create" resultType="java.lang.Long" affectData="true" flushCache="true">
+        INSERT INTO rpt_snapshot_job(tenant_id,kind,fingerprint) VALUES (#{tenantId},#{kind.code},#{fingerprint})
+        ON CONFLICT (tenant_id,kind) WHERE state='BUILDING' DO NOTHING RETURNING id
+    </select>
+    <select id="active" resultType="com.lrj.erp.reporting.domain.ReportRepository$Job">
+        SELECT <include refid="job"/> FROM rpt_snapshot_job WHERE tenant_id=#{tenantId} AND kind=#{kind.code} AND state='BUILDING'
+    </select>
+    <select id="lock" resultType="com.lrj.erp.reporting.domain.ReportRepository$Job" flushCache="true" useCache="false">
+        SELECT <include refid="job"/> FROM rpt_snapshot_job WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE
+    </select>
+    <select id="current" resultType="com.lrj.erp.reporting.domain.ReportRepository$Job">
+        SELECT j.id,j.tenant_id,j.kind,j.fingerprint,j.cursor_id,j.state,j.created_at,j.finished_at
+        FROM rpt_snapshot_current c JOIN rpt_snapshot_job j ON j.tenant_id=c.tenant_id AND j.id=c.job_id
+        WHERE c.tenant_id=#{tenantId} AND c.kind=#{kind.code}
+    </select>
+    <insert id="append">INSERT INTO rpt_snapshot_fact(tenant_id,job_id,source_id,company_id,partner_id,warehouse_id,sku_id,batch_no,business_date,quantity,reserved,locked,in_transit,amount,reduction,settled,paid) VALUES
+        <foreach collection="rows" item="r" separator=",">(#{tenantId},#{jobId},#{r.sourceId,jdbcType=BIGINT},#{r.companyId,jdbcType=BIGINT},#{r.partnerId,jdbcType=BIGINT},#{r.warehouseId,jdbcType=BIGINT},#{r.skuId,jdbcType=BIGINT},#{r.batchNo,jdbcType=VARCHAR},#{r.businessDate,jdbcType=DATE},#{r.quantity,jdbcType=NUMERIC},#{r.reserved,jdbcType=NUMERIC},#{r.locked,jdbcType=NUMERIC},#{r.inTransit,jdbcType=NUMERIC},#{r.amount,jdbcType=NUMERIC},#{r.reduction,jdbcType=NUMERIC},#{r.settled,jdbcType=NUMERIC},#{r.paid,jdbcType=NUMERIC})</foreach>
+    </insert>
+    <update id="advance">UPDATE rpt_snapshot_job SET cursor_id=#{cursor}
+        WHERE tenant_id=#{j.tenantId} AND id=#{j.id} AND cursor_id=#{j.cursorId} AND state='BUILDING'</update>
+    <update id="finish">UPDATE rpt_snapshot_job SET state=#{state},finished_at=clock_timestamp()
+        WHERE tenant_id=#{j.tenantId} AND id=#{j.id} AND state='BUILDING'</update>
+    <insert id="publish">INSERT INTO rpt_snapshot_current(tenant_id,kind,job_id) VALUES (#{j.tenantId},#{j.kind},#{j.id})
+        ON CONFLICT (tenant_id,kind) DO UPDATE SET job_id=excluded.job_id</insert>
+    <select id="page" resultType="com.lrj.erp.kernel.reporting.ReportSource$Row">
+        SELECT source_id,company_id,partner_id,warehouse_id,sku_id,batch_no,business_date,quantity,reserved,locked,in_transit,amount,reduction,settled,paid FROM rpt_snapshot_fact WHERE tenant_id=#{tenantId} AND job_id=#{jobId} AND source_id>#{afterId}
+        ORDER BY source_id LIMIT #{limit}
+    </select>
+    <select id="summary" resultType="com.lrj.erp.reporting.domain.ReportRepository$Summary">
+        SELECT coalesce(sum(quantity),0) AS quantity,coalesce(sum(in_transit),0) AS in_transit,sum(amount) AS amount,
+        coalesce(sum(reduction),0) AS reduction,coalesce(sum(greatest(0,amount-reduction-settled)),0) AS unsettled,
+        count(*) FILTER (WHERE amount IS NULL) AS unknown_amounts,count(*) AS rows
+        FROM rpt_snapshot_fact WHERE tenant_id=#{tenantId} AND job_id=#{jobId}
+    </select>
+    <select id="aging" resultType="com.lrj.erp.reporting.domain.ReportRepository$Aging">
+        SELECT CASE WHEN #{asOf}::date-business_date &lt;= 30 THEN '0-30'
+                    WHEN #{asOf}::date-business_date &lt;= 60 THEN '31-60'
+                    WHEN #{asOf}::date-business_date &lt;= 90 THEN '61-90' ELSE '90+' END AS bucket,
+               sum(greatest(0,amount-reduction-settled)) AS outstanding,count(*) AS rows
+        FROM rpt_snapshot_fact WHERE tenant_id=#{tenantId} AND job_id=#{jobId} AND amount-reduction-settled>0
+        GROUP BY bucket ORDER BY bucket
+    </select>
+    <delete id="purgeRows">DELETE FROM rpt_snapshot_fact WHERE tenant_id=#{tenantId} AND job_id=#{jobId}
+        AND source_id IN (SELECT source_id FROM rpt_snapshot_fact WHERE tenant_id=#{tenantId} AND job_id=#{jobId} ORDER BY source_id LIMIT #{limit})</delete>
+    <delete id="deleteJob">DELETE FROM rpt_snapshot_job WHERE tenant_id=#{tenantId} AND id=#{jobId} AND state != 'BUILDING'
+        AND NOT EXISTS (SELECT 1 FROM rpt_snapshot_current WHERE tenant_id=#{tenantId} AND job_id=#{jobId})
+        AND NOT EXISTS (SELECT 1 FROM rpt_snapshot_fact WHERE tenant_id=#{tenantId} AND job_id=#{jobId})</delete>
+</mapper>

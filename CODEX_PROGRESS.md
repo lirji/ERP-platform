@@ -2,14 +2,16 @@
 
 ## 任务目标
 
-继续原计划 P7–P11；P8 仅在真实复杂审批需求触发时实施。用户已确认：退货生成独立红字调整及待退款记录，保留原收付款事实。当前分支 `feat/p7-inventory-reverse`，P7 已验证，下一阶段 P9。
+继续原计划 P7–P11；P8 仅在真实复杂审批需求触发时实施。用户已确认：退货生成独立红字调整及待退款记录，保留原收付款事实。当前分支 `feat/p9-reporting`，P7 已验证并交付，P9 已验证，接续 P10。
 
 历史目标：接手 Claude 会话 `6ce8fae5-f198-48db-ae23-48bd5dbc80c8`，用户已明确完成 P5 后继续 P6，做到采购到付款、订单到收款两条 MVP 业务闭环。
 
 ## 已完成
 
+- P9 已完成五类快照及可恢复重建，151 项全量回归通过；显式规模测试和 CLI 通过，详见 TEST_RESULT-P9.json / REPORT_SCALE-P9.json。
+
 - P7.3 采购/销售退货、独立红字/待退款/退款确认已完成，146 项全量回归通过；Gate 和 TEST_RESULT-P7 已落盘。P8 条件未触发。
-- P7.1/P7.2 已合并推送 origin/main（40e6d02）；P7.3 待 Git 交付。
+- P7.1/P7.2 已合并推送 origin/main（40e6d02）；P7.3 已提交 d31732e 并合并推送 origin/main。
 
 - P7.2 调拨/冻结盘点/审批调整完成，133 项全量回归通过（证据 TEST_RESULT-P7-2.json）；P7.3 现已完成。
 
@@ -23,6 +25,9 @@
 
 ## 已修改文件
 
+当前 P9 未提交改动：`erp-kernel/.../reporting/ReportSource.java`；inventory/procurement/sales/finance 各自的 `*ReportSource/*ReportMapper` 导出；`erp-reporting/src/main/` 快照任务/投影/查询/清理；`erp-app/.../ReportRebuildCommand.java`；`scripts/rebuild-report.sh`；`ReportSnapshotIT`、显式规模测试 `ReportScaleBenchmark`；P9 契约/切片/ADR-007。
+
+
 - `erp-finance/src/main/`：财务业务、Mapper、V90 迁移。
 - `erp-kernel/src/main/`：v2 事件 DTO、权威信用查询端口、Outbox 实际完成时间。
 - `erp-procurement/src/main/`、`erp-sales/src/main/`：财务事件金额/币种、并发锁与信用联动。
@@ -33,8 +38,7 @@
 
 ## 未完成
 
-- P7.3 Git 交付；继续 P9 报表、P10 可观测性、P11 本地环境/种子/CI。
-- P8 条件判断，P9 报表，P10 可观测性，P11 本地运行和全链路验收。
+- P9 Git 交付，然后继续 P10 可观测性、P11 本地运行/种子/CI。
 
 ## 当前问题
 
@@ -44,10 +48,10 @@
 
 ## 下一步建议
 
-1. 历史 P5/P6 目标已完成；详细验收见 `.engineering/gates/GATE-P6-20260922.md`，交付见 `DELIVERY_RESULT-P5-P6.md`。
+1. 继续当前 P9 规模测试和最终验证，再交付并进入 P10/P11。历史 P5/P6 目标已完成；详细验收见 `.engineering/gates/GATE-P6-20260922.md`，交付见 `DELIVERY_RESULT-P5-P6.md`。
 2. 如另行要求对外提供产品能力，先补生产 OIDC、HTTP 入口权限及实际租户币种/编号配置；不把内部 E2E 当生产验收。
 3. 如需迁移已有历史单据，单独规划 v1 到 v2 财务回填与对账，不直接猜金额。
 
 ## 恢复 Prompt
 
-请先读取 `CODEX_PROGRESS.md`。P5、P6 及 Git 交付已完成，不要重复实施。依据新的明确目标继续；P7 已通过 Gate，先核对其 Git 交付，再从 P9 推进到 P11，P8 按条件执行。生产 OIDC/HTTP 与历史补账边界仍需保持明确，未执行生产部署。
+请先读取 `CODEX_PROGRESS.md`。P5、P6 及 Git 交付已完成，不要重复实施。依据新的明确目标继续；P7 已通过 Gate 并推送 main（1720e12）。当前 feat/p9-reporting 含未提交 P9 实现，先检查 /tmp/p9-scale.log 和实际进程，完成 P9 验证与交付，再推进 P10/P11，P8 按条件执行。生产 OIDC/HTTP 与历史补账边界仍需保持明确，未执行生产部署。
