@@ -1,0 +1,47 @@
+{
+  "projectSummary": "ERP P11 本地演示，隔离租户 ERP_DEMO_P11 / 990001",
+  "detectedInfrastructure": {
+    "database": "PostgreSQL 16 (deploy/compose.yaml)",
+    "runtime": "Java 21 / Spring Boot 3.3.11",
+    "cache": null,
+    "mq": null,
+    "search": null,
+    "objectStorage": null
+  },
+  "coreFlows": [
+    "采购订单→审批→收货→应付→付款→核销",
+    "销售订单→审批→预占→出库→签收→应收→收款→核销"
+  ],
+  "dataVolumePlan": {
+    "tenant": 1,
+    "company": 1,
+    "department": 1,
+    "employee": 1,
+    "user": 1,
+    "role": 1,
+    "supplier": 1,
+    "customer": 1,
+    "product": 1,
+    "sku": 1,
+    "warehouse": 1,
+    "location": 1,
+    "purchaseOrder": 1,
+    "salesOrder": 1,
+    "coreBusinessLimit": 100
+  },
+  "isolation": "只读写 tenant_id=990001 且租户code=ERP_DEMO_P11；清理须同时匹配标记，不操作其他租户",
+  "entry": "erp-app/src/test/java/com/lrj/erp/it/DemoDataSeed.java（显式执行，普通测试不会触发）",
+  "evidence": [
+    "erp-app/src/main/resources/application.yml",
+    "deploy/compose.yaml",
+    "V10__iam.sql",
+    "V50__masterdata.sql",
+    "V120__employee_identity_link.sql"
+  ],
+  "execution": "2026-09-22 本地初始化、重复初始化、verify、cleanup、重复cleanup、重新初始化、verify 全部通过",
+  "verification": {
+    "DATA_VERIFY": "PASS",
+    "APP_VERIFY": "PASS_INTERNAL_SERVICES",
+    "HTTP_BUSINESS": "NOT_IMPLEMENTED"
+  }
+}

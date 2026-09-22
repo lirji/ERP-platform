@@ -12,6 +12,39 @@
 name: erp-platform
 
 services:
+  app:
+    image: erp-platform:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      ERP_APP_PORT: 8500
+      ERP_APP_BIND: 0.0.0.0
+      ERP_DB_HOST: postgres
+      ERP_DB_PORT: 5432
+      ERP_DB_NAME: ${POSTGRES_DB:-erp}
+      ERP_DB_USER: ${POSTGRES_USER:-erp}
+      ERP_DB_PASSWORD: ${POSTGRES_PASSWORD:?必须在 .env 中设置 POSTGRES_PASSWORD}
+      ERP_DB_POOL_MAX: 20
+      ERP_LOG_LEVEL: ${ERP_LOG_LEVEL:-INFO}
+    ports:
+      - "127.0.0.1:${ERP_APP_PORT:-8500}:8500"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8500/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+
   postgres:
     image: postgres:16-alpine
     container_name: erp-postgres

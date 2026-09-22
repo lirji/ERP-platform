@@ -9,18 +9,22 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P10 Gate PASS**；155 项全量回归，下一阶段 P11 |
-| 分支 | feat/p7-inventory-reverse；P5/P6 已合并推送 |
+| 当前 Phase | **P11 本地验证 PASS / 远程 CI 待验**；157 项全量回归 |
+| 分支 | feat/p11-local-delivery；P5/P6/P7/P9/P10 已合并推送 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
-## P10 当前验收
+## P11 当前验收
+
+157 项全量回归通过；Compose 应用健康、演示重复初始化/清理/重建及监控检查通过。待远程 CI 与最终 Git 交付。详见 TEST_RESULT-P11.json 和 CODEX_PROGRESS.md。
+
+## P10 历史验收
 
 提交后业务审计、脱敏慢查询、库存/AR/AP对账、Outbox积压/死信/新鲜度指标及可执行告警检查已通过155项回归；见 GATE-P10-20260922.md。下一阶段 P11。
 
 ## P9 历史验收
 
-库存/采购/销售/AR/AP 五类快照、检查点、原子发布、取消清理、CLI 已实现；151 项全量回归通过。规模测试 200 万桶、50 万 SKU 维度，五类 P95 低于 1s；证据 GATE-P9-20260922.md。P10/P11 尚未完成。
+库存/采购/销售/AR/AP 五类快照、检查点、原子发布、取消清理、CLI 已实现；151 项全量回归通过。规模测试 200 万桶、50 万 SKU 维度，五类 P95 低于 1s；证据 GATE-P9-20260922.md。P10 已完成，P11 状态见上节。
 
 ## P7 历史执行
 
@@ -139,7 +143,7 @@ P3 的预占链（预占→部分消耗→释放）已就绪，P5 直接建立�
 - 取消订单必须**同时**断言预占表与余额都正确，而不只看其一；
 - 信用超限被拦截后，审批放行才可下单。
 
-P6 两条内部业务闭环已验证并交付，本次目标已完成；后续生产能力与 P7–P11 不属于本次目标。
+P6 两条内部业务闭环已验证并交付；用户后续已授权继续 P7–P11，当前状态见首节。
 
 可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
 
@@ -166,5 +170,5 @@ docker compose -f deploy/compose.yaml --env-file .env up -d   # 需先由 .env.e
 mvn clean verify
 java -jar erp-app/target/erp-app-0.1.0-SNAPSHOT.jar
 curl -s localhost:8500/actuator/health
-./test-data/init-test-data.sh verify
+./test-data/verify-test-data.sh
 ```
