@@ -36,6 +36,8 @@ public interface ProcurementMapper {
                          @Param("skuRef") String skuRef, @Param("orderedQty") BigDecimal orderedQty,
                          @Param("unitPrice") BigDecimal unitPrice);
 
+    OrderHeader lockOrder(@Param("tenantId") long tenantId, @Param("orderId") long orderId);
+
     OrderHeader findOrder(@Param("tenantId") long tenantId, @Param("orderId") long orderId);
 
     List<OrderLine> findOrderLines(@Param("tenantId") long tenantId, @Param("orderId") long orderId);

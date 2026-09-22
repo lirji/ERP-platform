@@ -26,7 +26,7 @@
 
     <update id="markPublished">
         UPDATE erp_outbox_message
-        SET status = 'PUBLISHED', published_at = now(), last_error = NULL
+        SET status = 'PUBLISHED', published_at = clock_timestamp(), last_error = NULL
         WHERE id = #{id}
     </update>
 

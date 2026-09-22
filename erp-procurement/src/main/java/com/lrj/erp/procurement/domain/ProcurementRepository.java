@@ -15,6 +15,9 @@ public interface ProcurementRepository {
     long insertOrderLine(long tenantId, long orderId, int lineNo, long skuId,
                          String skuRefJson, BigDecimal orderedQty, BigDecimal unitPrice);
 
+    /** 修改前锁定订单，确保分批收货金额按已提交累计数量计算。 */
+    OrderHeader lockOrder(long tenantId, long orderId);
+
     OrderHeader findOrder(long tenantId, long orderId);
 
     List<OrderLine> findOrderLines(long tenantId, long orderId);
@@ -48,7 +51,7 @@ public interface ProcurementRepository {
                        long warehouseId, String state, long version, String orgPath) { }
 
     record OrderLine(long id, long orderId, int lineNo, long skuId, String skuRefJson,
-                     BigDecimal orderedQty, BigDecimal receivedQty, boolean closed) {
+                     BigDecimal orderedQty, BigDecimal receivedQty, boolean closed, BigDecimal unitPrice) {
 
         /** 尚可收货的量。 */
         public BigDecimal outstanding() {

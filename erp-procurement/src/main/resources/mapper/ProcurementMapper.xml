@@ -27,10 +27,18 @@
         FROM pur_order WHERE tenant_id = #{tenantId} AND id = #{orderId}
     </select>
 
+    <select id="lockOrder"
+            resultType="com.lrj.erp.procurement.domain.ProcurementRepository$OrderHeader">
+        SELECT id, tenant_id AS tenantId, company_id AS companyId, order_no AS orderNo,
+               supplier_id AS supplierId, warehouse_id AS warehouseId, state, version,
+               org_path AS orgPath
+        FROM pur_order WHERE tenant_id = #{tenantId} AND id = #{orderId} FOR UPDATE
+    </select>
+
     <sql id="lineCols">
         id, order_id AS orderId, line_no AS lineNo, sku_id AS skuId,
         sku_ref::text AS skuRefJson, ordered_qty AS orderedQty,
-        received_qty AS receivedQty, closed
+        received_qty AS receivedQty, closed, unit_price AS unitPrice
     </sql>
 
     <select id="findOrderLines"

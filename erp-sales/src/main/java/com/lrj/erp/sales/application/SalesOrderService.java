@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import com.lrj.erp.kernel.events.PostedDocument;
+import com.lrj.erp.masterdata.service.CurrencyService;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +39,7 @@ public class SalesOrderService {
     public static final String DOC_TYPE_ORDER = "SALES_ORDER";
     public static final String DOC_TYPE_SHIPMENT = "SALES_SHIPMENT";
 
+    private final com.lrj.erp.kernel.finance.SettledCreditQuery settledCredit;
     private final ObjectMapper json;
     private final SalesRepository repository;
     private final NumberGenerator numberGenerator;
@@ -45,6 +49,7 @@ public class SalesOrderService {
     private final ReservationService reservations;
     /** 关系图通过事件构建：销售不得依赖 erp-document（依赖矩阵）。 */
     private final OutboxRecorder outbox;
+    private final CurrencyService currencies;
 
     private final StateMachine<SalesRepository.OrderHeader> machine =
             StandardDocumentStateMachine.<SalesRepository.OrderHeader>builder().build();
@@ -52,7 +57,9 @@ public class SalesOrderService {
     public SalesOrderService(SalesRepository repository, NumberGenerator numberGenerator,
                              ApprovalPort approvalPort, DocumentStateService documentState,
                              StockPostingService posting, ReservationService reservations,
-                             OutboxRecorder outbox, ObjectMapper json) {
+                             OutboxRecorder outbox, ObjectMapper json, CurrencyService currencies, com.lrj.erp.kernel.finance.SettledCreditQuery settledCredit) {
+        this.settledCredit = settledCredit;
+        this.currencies = currencies;
         this.json = json;
         this.repository = repository;
         this.numberGenerator = numberGenerator;
@@ -80,8 +87,9 @@ public class SalesOrderService {
                             String orgPath, long operatorId) {
 
         validateLines(lines, creditLimit);
+        // 与分批出库事件统一按行舍入，再汇总，避免财务核销金额超过信用占用本金。
         BigDecimal total = lines.stream()
-                .map(l -> l.unitPrice().multiply(l.quantity()))
+                .map(l -> l.unitPrice().multiply(l.quantity()).setScale(4, RoundingMode.HALF_UP))
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(4, java.math.RoundingMode.HALF_UP);
 
@@ -95,7 +103,7 @@ public class SalesOrderService {
             // 已获审批放行：无条件占用。放行是业务决定，不是把上限调高——
             // 调高上限会影响之后所有订单，放行只影响这一单。
             repository.occupyCreditForced(tenantId, customerId, total);
-        } else if (!repository.occupyCreditIfWithinLimit(tenantId, customerId, total, creditLimit)) {
+        } else if (!repository.occupyCreditIfWithinLimit(tenantId, customerId, total, creditLimit.add(settledCredit.netSettled(tenantId, customerId)))) {
             throw new DomainException(SalesErrorCode.CREDIT_EXCEEDED,
                     Map.of("customerId", customerId, "creditLimit", creditLimit,
                            "used", repository.usedCredit(tenantId, customerId),
@@ -221,6 +229,7 @@ public class SalesOrderService {
         long shipmentId = repository.insertShipment(tenantId, order.companyId(), shipmentNo,
                 orderId, order.warehouseId(), order.orgPath(), operatorId);
 
+        BigDecimal postedAmount = BigDecimal.ZERO;
         for (ShipLine l : lines) {
             if (l == null || l.quantity() == null || l.quantity().signum() <= 0
                     || l.quantity().stripTrailingZeros().scale() > 6) {
@@ -236,6 +245,9 @@ public class SalesOrderService {
                         Map.of("orderLineId", l.orderLineId(), "ordered", ol.orderedQty(),
                                "alreadyShipped", ol.shippedQty(), "attempted", l.quantity()));
             }
+
+            postedAmount = postedAmount.add(ol.shippedQty().add(l.quantity()).multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)
+                    .subtract(ol.shippedQty().multiply(ol.unitPrice()).setScale(4, RoundingMode.HALF_UP)));
 
             InventoryBucket bucket = bucket(order, ol);
             // 先消耗预占再扣在库：两者都在同一事务，顺序不影响结果，
@@ -253,10 +265,11 @@ public class SalesOrderService {
 
         advanceAfterShipment(tenantId, orderId, operatorId);
 
-        outbox.record(tenantId, "Shipment", String.valueOf(shipmentId), "ShipmentPosted.v1",
-                Map.of("parentType", DOC_TYPE_ORDER, "parentId", String.valueOf(orderId),
-                       "parentNo", order.orderNo(), "childType", DOC_TYPE_SHIPMENT,
-                       "childId", String.valueOf(shipmentId), "childNo", shipmentNo));
+        outbox.record(tenantId, "Shipment", String.valueOf(shipmentId), PostedDocument.SALES,
+                new PostedDocument(DOC_TYPE_ORDER, String.valueOf(orderId), order.orderNo(),
+                        DOC_TYPE_SHIPMENT, String.valueOf(shipmentId), shipmentNo,
+                        order.companyId(), order.customerId(), postedAmount, currencies.requireBase(tenantId),
+                        order.orgPath(), operatorId));
         return shipmentId;
     }
 
@@ -363,7 +376,7 @@ public class SalesOrderService {
 
     /** 查询客户当前已占用信用。 */
     public BigDecimal usedCredit(long tenantId, long customerId) {
-        return repository.usedCredit(tenantId, customerId);
+        return repository.usedCredit(tenantId, customerId).subtract(settledCredit.netSettled(tenantId, customerId));
     }
 
     public record NewLine(long skuId, MasterDataRef skuRef, String batchNo,

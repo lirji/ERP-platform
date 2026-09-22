@@ -99,3 +99,24 @@
 | `traceId` | 关联同一次请求的全部日志 |
 
 `beforeValue` / `afterValue` 中的敏感字段（价格授权、银行账号、证件号）按 `SECURITY_ARCHITECTURE` 的脱敏规则处理后再落库。
+
+## 5. P6 实施后的 v2 财务事实
+
+P4/P5 实际发布的 v1 只有单据关系字段，不能据此计算金额。保留原有 v1 重放语义，财务生成改由以下完整 v2 驱动（详见 ADR-005）：
+
+| 事件 | 生产者 | 消费者 | 幂等键 |
+|---|---|---|---|
+| `PurchaseReceiptPosted.v2` | procurement | finance 生成 AP、document 关系图 | 租户 + PURCHASE_RECEIPT + 来源 ID |
+| `ShipmentPosted.v2` | sales | finance 生成 AR、document 关系图 | 租户 + SALES_SHIPMENT + 来源 ID |
+
+载荷对应 `kernel.events.PostedDocument`：
+
+- `parentType/parentId/parentNo`：源头订单；`childType/childId/childNo`：本次收发单；
+- `companyId/partnerId`：主体与供应商/客户；
+- `amount/currency`：本批金额及来源事务读取的启用本位币；
+- `orgPath/operatorId`：组织范围与来源操作人。
+
+不从子模块数据库补查财务字段，不为历史 v1 猜测金额；存量 v1 补账需要来源侧另行回填完整 v2。
+`ReceivableCreated.v1 / PayableCreated.v1 / ReceiptCompleted.v1 / PaymentCompleted.v1` 带关系字段，支持继续沿图追溯。
+`SettlementApplied.v1 / SettlementReversed.v1` 带 `billType/billId/cashId/amount/currency/partnerId/orderId/settlementId`；反核销 amount 为负数。
+财务与关系图消费均独立事务，失败必须抛出以重试；发布标记失败后的重复投递由数据库约束防重。

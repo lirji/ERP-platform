@@ -27,7 +27,7 @@ import java.sql.Statement;
  *
  * <p>隔离：使用独立数据库 {@code erp_it}，不触碰开发者的 {@code erp} 库。
  */
-@SpringBootTest(classes = ErpApplication.class)
+@SpringBootTest(classes = ErpApplication.class, properties = "erp.outbox.scheduling-enabled=false")
 public abstract class AbstractPostgresIT {
 
     private static final String HOST = System.getenv().getOrDefault("ERP_IT_DB_HOST", "127.0.0.1");

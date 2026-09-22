@@ -27,6 +27,10 @@ public class MyBatisProcurementRepository implements ProcurementRepository {
         return mapper.insertOrderLine(tenantId, orderId, lineNo, skuId, skuRefJson, orderedQty, unitPrice);
     }
 
+    @Override public OrderHeader lockOrder(long tenantId, long orderId) {
+        return mapper.lockOrder(tenantId, orderId);
+    }
+
     @Override public OrderHeader findOrder(long tenantId, long orderId) {
         return mapper.findOrder(tenantId, orderId);
     }

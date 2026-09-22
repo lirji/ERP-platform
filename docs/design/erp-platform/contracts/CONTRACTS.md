@@ -228,3 +228,7 @@ GET /api/v1/{context}/{resource}?page=1&size=20&sort=createdAt,desc
 ## P5 实现边界
 
 销售模块内部用例与当前限制见 [API_P5_SALES.md](API_P5_SALES.md)。该文档不替代本契约的生产 HTTP 安全要求。
+
+## P6 实现边界
+
+财务内部用例见 [API_P6_FINANCE.md](API_P6_FINANCE.md)，事件版本与信用查询取舍见 [ADR-005](../adr/ADR-005-financial-events-and-credit.md)。生产认证、HTTP 入口和历史 v1 财务回填尚未纳入已验证能力。

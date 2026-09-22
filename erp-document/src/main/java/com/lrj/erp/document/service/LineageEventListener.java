@@ -3,8 +3,6 @@ package com.lrj.erp.document.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lrj.erp.kernel.outbox.OutboxMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -24,8 +22,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class LineageEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(LineageEventListener.class);
-
     private final DocumentLineageService lineage;
     private final ObjectMapper objectMapper;
 
@@ -42,6 +38,8 @@ public class LineageEventListener {
      * 否则每加一种单据都要回头改溯源模块，那正是耦合。
      */
     @EventListener
+    @org.springframework.transaction.annotation.Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
     public void on(OutboxMessage message) {
         try {
             JsonNode p = objectMapper.readTree(message.payload());
@@ -54,10 +52,9 @@ public class LineageEventListener {
                     p.get("childType").asText(), p.get("childId").asText(),
                     p.path("childNo").asText(null));
         } catch (Exception e) {
-            // 关系图是派生视图：构建失败不得影响业务，但必须留痕，
-            // 否则会出现"溯源静默缺失"——查不到链路时没人知道是没发生还是没记上
-            log.warn("构建单据关系失败 eventType={} aggregateId={}",
-                    message.eventType(), message.aggregateId(), e);
+            // 派生视图可以滞后，但不能静默丢失；独立事务失败后交给 Outbox 重试。
+            // 不在错误摘要中拼入完整 payload，避免审计字段进入普通日志。
+            throw new IllegalStateException("单据关系构建失败", e);
         }
     }
 }
