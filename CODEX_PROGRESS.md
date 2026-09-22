@@ -24,6 +24,7 @@
 
 - P11 分批提交，推送任务分支并实跑 GitHub Actions；通过后正常合并/推送 main，核实最终 CI。
 - 回写最终 Gate/交付证据。
+- 首次 CI 35681078016 暴露历史 V2 依赖 V30 空库失败；已增加 B30 累计基线和 FreshSchemaMigrationIT，当前验证 /tmp/p11-fresh-verify.log，待通过后提交重跑。
 
 ## 当前问题
 

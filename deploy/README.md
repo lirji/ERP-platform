@@ -17,3 +17,9 @@
 ## CI
 
 `.github/workflows/erp-ci.yml` 在临时 runner 创建随机数据库凭据，运行全量真实 PostgreSQL 测试，再构建应用、启动并验证重复初始化/清理/重建和监控。测试 XML 保存为 artifact；销毁卷仅发生在一次性 CI 环境。Action 固定到提交，业务变更触发 push/PR 校验。分支保护规则属于仓库管理员配置，本工作流不绕过保护。
+
+## 空库与已有库迁移
+
+历史 V2 重命名状态表依赖 V30 的建表，乱序开关无法解决空库排序。新增 `B30__platform_bootstrap.sql` 按真实依赖汇总 V1/V10/V20/V30/V2：仅空库采用 B30，然后执行 V31 及后续版本；已有迁移历史的数据库继续原路径，原脚本/校验值不变。此行为采用 [Flyway baseline migrations](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/baseline-migrations)，没有执行 repair、删除历史或设置 baseline-on-migrate。
+
+`FreshSchemaMigrationIT` 每次创建随机隔离 schema，验证完整迁移、重复迁移无新增执行，并对比业务表列结构；只清理自身 schema。全新 CI 数据库还实际跑完整业务测试和应用冷启动。

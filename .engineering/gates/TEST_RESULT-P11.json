@@ -2,7 +2,7 @@
   "phase": "P11",
   "command": "mvn -q clean verify",
   "totals": {
-    "tests": 157,
+    "tests": 158,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -128,6 +128,13 @@
       "skipped": 0
     },
     {
+      "name": "com.lrj.erp.it.FreshSchemaMigrationIT",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
       "name": "com.lrj.erp.it.ReportSnapshotIT",
       "tests": 5,
       "failures": 0,
@@ -223,5 +230,11 @@
     "scope": "tenant990001 / ERP_DEMO_P11",
     "smoke": "UP / business health OK"
   },
-  "ci": "PENDING"
+  "ci": "PENDING",
+  "ciFirstAttempt": {
+    "runId": 35681078016,
+    "result": "FAIL",
+    "cause": "历史 V2 依赖 V30，空库顺序错误",
+    "remedy": "B30 基线 + FreshSchemaMigrationIT，不改历史校验值"
+  }
 }
