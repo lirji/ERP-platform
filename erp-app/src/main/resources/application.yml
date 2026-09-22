@@ -32,10 +32,8 @@ spring:
     # 允许乱序应用：迁移版本按模块分段（V10-19 iam / V20-29 numbering / V30-39 document…），
     # 各模块的开发顺序不等于版本号顺序，先做 numbering 再做 iam 就会出现"低版本后到"。
     #
-    # 在本项目这样做是安全的，因为架构已经保证了前提：
-    # 每个模块的迁移只触碰自己拥有的表前缀（Data Ownership，由 TableOwnershipArchitectureTest 强制），
-    # 因此不存在跨模块的迁移依赖，乱序不会让某个脚本看不到它依赖的对象。
-    # 一旦有人写出跨模块迁移依赖，这个前提就被破坏——那本身也是架构违规。
+    # 乱序不提供依赖排序保证。历史 V2 依赖 V30，新库由 B30 累计基线修复顺序；
+    # 既有迁移保持校验值不变，新迁移必须在依赖版本之后，FreshSchemaMigrationIT 验证空库。
     out-of-order: true
 
 mybatis-plus:

@@ -1,5 +1,7 @@
 # Next Actions
 
+> 历史规划归档（P0 前）。用户后续已授权并完成 P0–P7、P9/P10，P8 条件未触发；当前 P11 状态以 `../PROGRESS_STATE.md` 和根目录 `CODEX_PROGRESS.md` 为准。以下“未授予”“需要回答”仅描述当时，不是当前阻塞。
+
 > Owner: `project-bootstrap`。本轮停止点已到达，以下动作**需要用户决定或授权**后才发生。
 
 ## 1. 需要你回答的（按紧急度）

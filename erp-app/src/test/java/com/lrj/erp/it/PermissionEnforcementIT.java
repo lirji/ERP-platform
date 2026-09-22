@@ -28,11 +28,11 @@ class PermissionEnforcementIT extends AbstractPostgresIT {
 
     @BeforeEach
     void seed() {
-        jdbc.update("DELETE FROM iam_user_role");
-        jdbc.update("DELETE FROM iam_role_permission");
-        jdbc.update("DELETE FROM iam_user");
-        jdbc.update("DELETE FROM iam_role");
-        jdbc.update("DELETE FROM iam_org");
+        jdbc.update("DELETE FROM iam_user_role WHERE tenant_id = 700");
+        jdbc.update("DELETE FROM iam_role_permission WHERE tenant_id = 700");
+        jdbc.update("DELETE FROM iam_user WHERE tenant_id = 700");
+        jdbc.update("DELETE FROM iam_role WHERE tenant_id = 700");
+        jdbc.update("DELETE FROM iam_org WHERE tenant_id = 700");
         jdbc.update("DELETE FROM iam_tenant WHERE code = ?", TENANT_CODE);
 
         jdbc.update("INSERT INTO iam_tenant (id, code, name, timezone, enabled) "
