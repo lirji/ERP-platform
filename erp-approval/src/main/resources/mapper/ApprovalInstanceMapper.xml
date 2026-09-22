@@ -31,4 +31,8 @@
         WHERE tenant_id = #{tenantId} AND id = #{id} AND status = 'PENDING'
     </update>
 
+    <select id="matches" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM apr_instance WHERE tenant_id = #{tenantId} AND id = #{id}
+            AND business_type = #{businessType} AND business_id = #{businessId} AND status = #{status})
+    </select>
 </mapper>

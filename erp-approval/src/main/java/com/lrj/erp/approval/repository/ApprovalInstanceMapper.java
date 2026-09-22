@@ -22,6 +22,11 @@ public interface ApprovalInstanceMapper {
                             @Param("businessType") String businessType,
                             @Param("businessId") String businessId);
 
+    /** 业务归属与状态必须同时命中。 */
+    boolean matches(@Param("tenantId") long tenantId, @Param("id") long id,
+                    @Param("businessType") String businessType, @Param("businessId") String businessId,
+                    @Param("status") String status);
+
     /** 仅当仍为 PENDING 时才落决策；影响 0 行表示实例已结束。 */
     int decide(@Param("tenantId") long tenantId, @Param("id") long id,
                @Param("status") String status, @Param("decidedBy") long decidedBy,

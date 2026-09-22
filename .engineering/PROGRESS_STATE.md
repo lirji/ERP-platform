@@ -1,6 +1,6 @@
 # PROGRESS STATE
 
-> 最后更新：2026-09-21 · 由 Claude Code 会话写入
+> 最后更新：2026-09-22 · Codex 接手 Claude 会话后回写
 > 用途：跨会话 / 跨客户端（Claude · Codex · Cursor）恢复。
 > **Reality is authoritative**：恢复时先验真实仓库与 Runtime，再信本文件。
 
@@ -9,10 +9,16 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P4 Procure to Receive 已完成**（GATE-P4-20260921 = PASS_WITH_ASSUMPTIONS），下一步 P5 Order to Ship |
-| 分支 | `feat/p4-procure-to-receive` → `main`，已推送 `origin/main` |
-| Driver | `claude-code-local`，probed `health: READY` |
+| 当前 Phase | **P5 Order to Ship 已完成本地验收**（GATE-P5-20260922 = PASS_WITH_ASSUMPTIONS），下一步交付 P5 / P6 |
+| 分支 | `feat/p5-order-to-ship`，P5 验证通过，提交合并推送待执行 |
+| Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
+
+## P5 当前验收
+
+五项阶段出口及双向追溯全部 PASS，见 `.engineering/gates/GATE-P5-20260922.md`。
+`mvn -q clean verify` 退出码 0；33 单元/架构 + 71 集成 = **104**，无失败或跳过。
+生产 OIDC、HTTP 销售入口、P6 财务闭环未完成；内部用例限制见 `API_P5_SALES.md`。
 
 ## P4 出口条件实测结果（GATE-P4-20260921）
 
@@ -99,11 +105,11 @@ Smoke：app 启动 UP · Flyway v60 · 对账通过
 |---|---|
 | ~~`origin` remote~~ | 已由用户确认，2026-09-21 推送完成（传输改用 HTTPS，原因见下） |
 | **`BLOCK-P1-01`** | **生产无认证路径**：临时请求头通道默认关闭且可伪造，OIDC 未接入。Casdoor 已实测可达（`:8000`，discovery 正常），接入前需在 Casdoor 注册 ERP 客户端（需用户决定客户端标识与回调地址）。**关闭前不得对外暴露** |
-| `Q-09` | 超收比例 / 是否允许负库存 —— **P4 之前**必须答复，当前按"默认禁止、配置可放开"继续 |
+| `Q-09` | 超收比例 / 是否允许负库存 —— **P4 之前**必须答复，已答复：不允许超收、不允许负库存；无放开开关 |
 | `SPECIFIED_ORG/COMPANY` | 角色上暂无明细配置表，命中时按 `DEPT_AND_BELOW` 处理，待 P2 补 |
 | `Q-02`/`Q-03` | 库位精度、是否对接 `wms-platform` —— P3 前答复较好 |
 
-## 下一步（P5 Order to Ship）
+## 已完成阶段说明（P5 Order to Ship）
 
 依赖 P3（已满足）。能力 CAP-C06、CAP-S06：订单→审批→预占→拣货→出库→发货→签收。
 P3 的预占链（预占→部分消耗→释放）已就绪，P5 直接建立其上。
@@ -111,6 +117,8 @@ P3 的预占链（预占→部分消耗→释放）已就绪，P5 直接建立�
 出口条件中易被糊弄的两条：
 - 取消订单必须**同时**断言预占表与余额都正确，而不只看其一；
 - 信用超限被拦截后，审批放行才可下单。
+
+下一业务阶段为 P6 应收应付与核销，需消费采购入库和销售出库事件闭合两条链路。
 
 可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
 

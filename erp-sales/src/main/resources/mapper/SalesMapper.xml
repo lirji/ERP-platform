@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.sales.infrastructure.SalesMapper">
+
+    <select id="insertOrder" resultType="java.lang.Long">
+        INSERT INTO sal_order (tenant_id, company_id, order_no, customer_id, customer_ref,
+                               warehouse_id, total_amount, org_path, created_by)
+        VALUES (#{tenantId}, #{companyId}, #{orderNo}, #{customerId}, #{customerRef}::jsonb,
+                #{warehouseId}, #{totalAmount}, #{orgPath}, #{createdBy})
+        RETURNING id
+    </select>
+
+    <select id="insertOrderLine" resultType="java.lang.Long">
+        INSERT INTO sal_order_line (tenant_id, order_id, line_no, sku_id, sku_ref,
+                                    batch_no, ordered_qty, unit_price)
+        VALUES (#{tenantId}, #{orderId}, #{lineNo}, #{skuId}, #{skuRef}::jsonb,
+                #{batchNo}, #{orderedQty}, #{unitPrice})
+        RETURNING id
+    </select>
+
+    <select id="findOrder" resultType="com.lrj.erp.sales.domain.SalesRepository$OrderHeader">
+        SELECT id, tenant_id AS tenantId, company_id AS companyId, order_no AS orderNo,
+               customer_id AS customerId, warehouse_id AS warehouseId,
+               total_amount AS totalAmount, state, reserved, version, org_path AS orgPath
+        FROM sal_order WHERE tenant_id = #{tenantId} AND id = #{orderId}
+    </select>
+
+    <select id="lockOrder" resultType="com.lrj.erp.sales.domain.SalesRepository$OrderHeader">
+        SELECT id, tenant_id AS tenantId, company_id AS companyId, order_no AS orderNo,
+               customer_id AS customerId, warehouse_id AS warehouseId,
+               total_amount AS totalAmount, state, reserved, version, org_path AS orgPath
+        FROM sal_order WHERE tenant_id = #{tenantId} AND id = #{orderId} FOR UPDATE
+    </select>
+
+    <update id="bindCreditApproval">
+        UPDATE sal_order SET credit_approval_id = #{approvalId}
+        WHERE tenant_id = #{tenantId} AND id = #{orderId} AND credit_approval_id IS NULL
+    </update>
+
+    <sql id="lineCols">
+        id, order_id AS orderId, line_no AS lineNo, sku_id AS skuId,
+        sku_ref::text AS skuRefJson, batch_no AS batchNo,
+        ordered_qty AS orderedQty, shipped_qty AS shippedQty, unit_price AS unitPrice
+    </sql>
+
+    <select id="findOrderLines" resultType="com.lrj.erp.sales.domain.SalesRepository$OrderLine">
+        SELECT <include refid="lineCols"/> FROM sal_order_line
+        WHERE tenant_id = #{tenantId} AND order_id = #{orderId} ORDER BY line_no
+    </select>
+
+    <select id="findOrderLine" resultType="com.lrj.erp.sales.domain.SalesRepository$OrderLine">
+        SELECT <include refid="lineCols"/> FROM sal_order_line
+        WHERE tenant_id = #{tenantId} AND id = #{orderLineId}
+    </select>
+
+    <!-- 上界写进 WHERE：并发分批出库时判断与累加原子完成，先查再累加会超发 -->
+    <update id="increaseShippedIfWithinOrdered">
+        UPDATE sal_order_line SET shipped_qty = shipped_qty + #{qty}
+        WHERE tenant_id = #{tenantId} AND id = #{orderLineId}
+          AND #{qty} > 0 AND shipped_qty + #{qty} &lt;= ordered_qty
+    </update>
+
+    <update id="updateOrderState">
+        UPDATE sal_order SET state = #{state}, version = #{newVersion}
+        WHERE tenant_id = #{tenantId} AND id = #{orderId} AND version = #{newVersion} - 1
+    </update>
+
+    <update id="markReserved">
+        UPDATE sal_order SET reserved = #{reserved} WHERE tenant_id = #{tenantId} AND id = #{orderId}
+    </update>
+
+    <select id="insertShipment" resultType="java.lang.Long">
+        INSERT INTO sal_shipment (tenant_id, company_id, shipment_no, order_id,
+                                  warehouse_id, org_path, created_by)
+        VALUES (#{tenantId}, #{companyId}, #{shipmentNo}, #{orderId},
+                #{warehouseId}, #{orgPath}, #{createdBy})
+        RETURNING id
+    </select>
+
+    <select id="insertShipmentLine" resultType="java.lang.Long">
+        INSERT INTO sal_shipment_line (tenant_id, shipment_id, order_line_id, sku_id, batch_no, shipped_qty)
+        VALUES (#{tenantId}, #{shipmentId}, #{orderLineId}, #{skuId}, #{batchNo}, #{qty})
+        RETURNING id
+    </select>
+
+    <update id="markDelivered">
+        UPDATE sal_shipment SET delivered_at = now()
+        WHERE tenant_id = #{tenantId} AND id = #{shipmentId} AND delivered_at IS NULL AND signed_at IS NULL
+    </update>
+
+    <update id="markSigned">
+        UPDATE sal_shipment SET signed_at = now(), state = 'FINISHED'
+        WHERE tenant_id = #{tenantId} AND id = #{shipmentId} AND signed_at IS NULL AND delivered_at IS NOT NULL
+    </update>
+
+    <select id="hasAnyShipment" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM sal_shipment WHERE tenant_id = #{tenantId} AND order_id = #{orderId})
+    </select>
+
+    <insert id="ensureCreditAccount">
+        INSERT INTO sal_credit_account (tenant_id, customer_id) VALUES (#{tenantId}, #{customerId})
+        ON CONFLICT (tenant_id, customer_id) DO NOTHING
+    </insert>
+
+    <!--
+      授信上限判断写进 WHERE：判断与占用原子完成。
+      先查已占用再累加，并发下两个订单可以同时读到"额度够"，结果是双双超限。
+    -->
+    <update id="occupyCreditIfWithinLimit">
+        UPDATE sal_credit_account
+        SET used_amount = used_amount + #{amount}, version = version + 1, updated_at = now()
+        WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+          AND used_amount + #{amount} &lt;= #{creditLimit}
+    </update>
+
+    <update id="occupyCreditForced">
+        UPDATE sal_credit_account
+        SET used_amount = used_amount + #{amount}, version = version + 1, updated_at = now()
+        WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+    </update>
+
+    <!-- 释放带下界条件，防止把已占用额度扣成负数 -->
+    <update id="releaseCredit">
+        UPDATE sal_credit_account
+        SET used_amount = used_amount - #{amount}, version = version + 1, updated_at = now()
+        WHERE tenant_id = #{tenantId} AND customer_id = #{customerId} AND used_amount >= #{amount}
+    </update>
+
+    <select id="usedCredit" resultType="java.math.BigDecimal">
+        SELECT COALESCE(used_amount, 0) FROM sal_credit_account
+        WHERE tenant_id = #{tenantId} AND customer_id = #{customerId}
+    </select>
+
+</mapper>

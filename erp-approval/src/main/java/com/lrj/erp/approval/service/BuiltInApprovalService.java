@@ -68,6 +68,12 @@ public class BuiltInApprovalService implements ApprovalPort {
         }
     }
 
+    /** 精确匹配实例，不能仅凭“某次审批通过”放行业务。 */
+    @Override
+    public boolean matches(long tenantId, long instanceId, String businessType, String businessId, String status) {
+        return mapper.matches(tenantId, instanceId, businessType, businessId, status);
+    }
+
     @Override
     public String statusOf(long tenantId, String businessType, String businessId) {
         return mapper.findLatestStatus(tenantId, businessType, businessId);

@@ -224,3 +224,7 @@ GET /api/v1/{context}/{resource}?page=1&size=20&sort=createdAt,desc
 
 每个写操作产生一条审计记录，字段见 `EVENT_CATALOG.md` 的 `AuditRecord`。
 审计在**写入路径**上拦截（AOP），不是事后补记——这是把 CAP-P09 从提示词 Phase 11 提前到 P1 的原因。
+
+## P5 实现边界
+
+销售模块内部用例与当前限制见 [API_P5_SALES.md](API_P5_SALES.md)。该文档不替代本契约的生产 HTTP 安全要求。
