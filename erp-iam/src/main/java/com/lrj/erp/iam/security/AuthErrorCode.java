@@ -5,6 +5,7 @@ import com.lrj.erp.kernel.error.ErrorCode;
 /** 认证与授权错误码（ERP-AUTH-*）。与 contracts/ERROR_CODES.md 的 AUTH 段一一对应。 */
 public enum AuthErrorCode implements ErrorCode {
 
+    SCOPE_TOO_LARGE    ("ERP-IAM-3001", "组织或角色范围超过边界或结构不完整，请联系管理员", 422),
     PROTECTED_GRANT    ("ERP-IAM-4010", "受保护的管理员授权不可修改", 403),
     NO_CREDENTIAL      ("ERP-AUTH-0001", "请先登录",               401),
     INVALID_CREDENTIAL ("ERP-AUTH-0002", "登录已失效，请重新登录",   401),

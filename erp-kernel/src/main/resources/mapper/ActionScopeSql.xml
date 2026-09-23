@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.kernel.context.ActionScopeSql">
+ <!-- 使用者必须将真实资源别名命名为resource；标识符不接受客户端输入。 -->
+ <sql id="documentScope">
+ resource.tenant_id=#{scope.tenantId} AND
+ <choose><when test="scope.grants.size() > 0">
+ <foreach collection="scope.grants" item="grant" open="(" close=")" separator=" OR ">
+ <choose>
+  <when test="grant.type == 'ALL'">TRUE</when>
+  <when test="grant.type == 'SELF'">resource.created_by=#{scope.userId}</when>
+  <when test="grant.type == 'DEPT'">resource.org_path=#{scope.orgPath}</when>
+  <when test="grant.type == 'DEPT_AND_BELOW'">left(resource.org_path,length(#{scope.orgPath}))=#{scope.orgPath}</when>
+  <when test="grant.type == 'SPECIFIED_ORG' and grant.orgPaths.size() > 0">
+   <foreach collection="grant.orgPaths" item="path" open="(" close=")" separator=" OR ">left(resource.org_path,length(#{path}))=#{path}</foreach>
+  </when>
+  <when test="grant.type == 'SPECIFIED_COMPANY' and grant.companyIds.size() > 0">
+   resource.company_id IN <foreach collection="grant.companyIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+  </when>
+  <otherwise>FALSE</otherwise>
+ </choose>
+ </foreach></when><otherwise>FALSE</otherwise></choose>
+ </sql>
+</mapper>

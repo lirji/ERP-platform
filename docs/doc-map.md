@@ -16,3 +16,5 @@
 - [React工作台运行](../erp-web/README.md)；[S0验收](../.engineering/gates/TEST_RESULT-FBL-S0.md)
 
 - [角色管理与管理员初始化](operations/ROLE_MANAGEMENT.md)；[S1验收](../.engineering/gates/TEST_RESULT-FBL-S1.md)
+
+- [S2A数据范围验收](../.engineering/gates/TEST_RESULT-FBL-S2A.md)

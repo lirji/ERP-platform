@@ -10,6 +10,8 @@ public final class RoleModels {
     }
     public record Page<T>(List<T> list,long total,int page,int size){}
     public record Permission(String code,String label,String group){}
+    public record ScopeUpdate(String expectedVersion,RoleScope scope){}
+    public record OrgNode(String id,String parentId,String type,String code,String name,boolean enabled,List<OrgNode> children){}
     public record Create(String code,String name){}
     public record Update(String expectedVersion,String name,Boolean enabled){}
     public record Permissions(String expectedVersion,List<String> permissions){}

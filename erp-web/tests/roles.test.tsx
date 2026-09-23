@@ -42,3 +42,22 @@ it('never offers editing for protected roles', async () => {
   render(<RolesPage client={{ command: vi.fn(), get: vi.fn().mockResolvedValue({ ...page, list: [{ ...role, protected: true }] }) }} permitted canManage />);
   expect(await screen.findByText('受保护')).toBeVisible(); expect(screen.queryByRole('button', { name: /^管理角色/ })).not.toBeInTheDocument();
 });
+it('requires a nonempty company scope before submitting its command', async () => {
+  const user = userEvent.setup();
+  const client = {
+    get: vi.fn().mockImplementation((path: string) => Promise.resolve(path.includes('role-directory') ? page : path.endsWith('/roles/21') ? role : path.endsWith('/orgs/tree') ? [{ id: '300', type: 'COMPANY', name: '接口公司', enabled: true, children: [] }] : [])),
+    command: vi.fn(),
+  };
+  render(<RolesPage client={client} permitted canManage canConfigureScopes />);
+  await user.click(await screen.findByRole('button', { name: '管理角色 test-reader' }));
+  await user.click(await screen.findByLabelText('主体范围'));
+  await user.click(screen.getAllByText('指定公司').at(-1)!);
+  await user.click(screen.getByRole('button', { name: '保存数据范围' }));
+  await waitFor(() => expect(screen.getByRole('combobox', { name: '指定公司' })).toHaveAttribute('aria-invalid', 'true'));
+  expect(client.command).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('combobox', { name: '指定公司' }));
+  await user.click(screen.getAllByText('接口公司').at(-1)!);
+  await user.click(screen.getByRole('heading', { name: '数据范围' }));
+  await user.click(screen.getByRole('button', { name: '保存数据范围' }));
+  await waitFor(() => expect(client.command).toHaveBeenCalledWith('/api/v1/iam/roles/21/data-scope', 'PUT', { expectedVersion: '0', scope: { type: 'SPECIFIED_COMPANY', orgIds: [], companyIds: ['300'], warehouseMode: 'NONE', warehouseIds: [] } }, expect.any(String)));
+});

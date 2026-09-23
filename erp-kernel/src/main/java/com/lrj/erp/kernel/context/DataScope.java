@@ -10,7 +10,13 @@ import java.util.Set;
  * @param orgPaths  SPECIFIED_ORG 时的组织路径列表；其他类型为空
  * @param companyIds SPECIFIED_COMPANY 时的公司列表；其他类型为空
  */
-public record DataScope(DataScopeType type, List<String> orgPaths, Set<Long> companyIds) {
+public record DataScope(DataScopeType type, List<String> orgPaths, Set<Long> companyIds, boolean denied) {
+
+    /** 保持既有调用构造器兼容；默认不是拒绝摘要。 */
+    public DataScope(DataScopeType type,List<String> orgPaths,Set<Long> companyIds){this(type,orgPaths,companyIds,false);}
+
+    /** 旧入口无法表达角色动作并集时显式拒绝，保留/me枚举摘要。 */
+    public static DataScope denied(DataScopeType type){return new DataScope(type,List.of(),Set.of(),true);}
 
     public DataScope {
         orgPaths = orgPaths == null ? List.of() : List.copyOf(orgPaths);
@@ -18,10 +24,10 @@ public record DataScope(DataScopeType type, List<String> orgPaths, Set<Long> com
 
         // 配置非法要在构造时就失败：带着空列表的 SPECIFIED_ORG 一旦进入查询层，
         // 会被拼成 `org_path IN ()` 或被忽略成"无限制"，后者是静默越权。
-        if (type == DataScopeType.SPECIFIED_ORG && orgPaths.isEmpty()) {
+        if (!denied && type == DataScopeType.SPECIFIED_ORG && orgPaths.isEmpty()) {
             throw new IllegalArgumentException("SPECIFIED_ORG 必须指定至少一个组织路径");
         }
-        if (type == DataScopeType.SPECIFIED_COMPANY && companyIds.isEmpty()) {
+        if (!denied && type == DataScopeType.SPECIFIED_COMPANY && companyIds.isEmpty()) {
             throw new IllegalArgumentException("SPECIFIED_COMPANY 必须指定至少一个公司");
         }
     }

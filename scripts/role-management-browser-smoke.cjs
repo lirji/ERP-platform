@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const base = process.env.ERP_SMOKE_BASE || 'http://localhost:18500';
+const scopeCheck = process.env.ERP_SMOKE_SCOPE === '1';
 let step = '登录'; let diagnosticPage;
 (async () => {
   assert(['http://localhost:18500', 'http://localhost:8500'].includes(base));
@@ -60,7 +61,7 @@ let step = '登录'; let diagnosticPage;
     });
     await page.getByRole('button', { name: '创建角色', exact: true }).click();
     step = '错误提示可见';
-    await page.getByText('请求未能完成，请核对连接后使用原操作重试', { exact: true }).waitFor({ state: 'visible' });
+    await page.getByRole('dialog', { name: '新建普通角色' }).getByText('请求未能完成，请核对连接后使用原操作重试', { exact: true }).waitFor({ state: 'visible' });
     assert.equal(await page.getByLabel('角色编码', { exact: true }).inputValue(), code);
     await page.getByRole('button', { name: '创建角色', exact: true }).click();
     step = '重放关闭表单';
@@ -71,6 +72,8 @@ let step = '登录'; let diagnosticPage;
     await page.getByLabel('搜索角色', { exact: true }).press('Enter');
     await page.getByRole('cell', { name: code, exact: true }).waitFor();
     await expect(page.locator('tbody tr[data-row-key]')).toHaveCount(1);
+    let treeReply;
+    if (scopeCheck) { treeReply = page.waitForResponse(r => r.url().endsWith('/orgs/tree')); void treeReply.catch(() => {}); }
     step = '打开管理';
     await page.getByRole('button', { name: '管理角色 ' + code, exact: true }).click();
     await page.getByRole('dialog').waitFor();
@@ -82,6 +85,27 @@ let step = '登录'; let diagnosticPage;
     const [assigned] = await Promise.all([page.waitForResponse(r => r.url().endsWith('/permissions') && r.request().method() === 'PUT'), page.getByRole('button', { name: '保存权限', exact: true }).click()]);
     assert.equal(assigned.status(), 200);
     const saved = await assigned.json(); assert.deepEqual(saved.permissions, ['purchase:order:read']);
+    if (scopeCheck) {
+      step = '配置公司范围';
+      const orgs = await (await treeReply).json();
+      const options = [];
+      function flatten(nodes, parent = '') { for (const node of nodes) { const label = parent ? parent + ' / ' + node.name : node.name; if (node.type === 'COMPANY' && node.enabled) options.push({ id: node.id, label }); flatten(node.children, label); } }
+      flatten(orgs); assert(options.length > 0); const company = options[0];
+      await page.getByLabel('主体范围', { exact: true }).click();
+      await page.getByText('指定公司', { exact: true }).last().click();
+      await page.getByRole('combobox', { name: /指定公司/ }).click();
+      await page.getByRole('combobox', { name: /指定公司/ }).fill(company.label);
+      await page.getByText(company.label, { exact: true }).last().click();
+      await page.getByRole('heading', { name: '数据范围', exact: true }).click();
+      const [scopeReply] = await Promise.all([page.waitForResponse(r => r.url().endsWith('/data-scope') && r.request().method() === 'PUT'), page.getByRole('button', { name: '保存数据范围', exact: true }).click()]);
+      assert.equal(scopeReply.status(), 200);
+      const scoped = await scopeReply.json(); assert.equal(scoped.scope.type, 'SPECIFIED_COMPANY'); assert.deepEqual(scoped.scope.companyIds, [company.id]);
+      await page.locator('.ant-drawer-close').click();
+      await page.getByRole('dialog').waitFor({ state: 'hidden' });
+      await page.getByRole('button', { name: '管理角色 ' + code, exact: true }).click();
+      await page.getByRole('dialog').waitFor();
+      await expect(page.getByRole('dialog').getByText(company.label, { exact: true })).toBeVisible();
+    }
     step = '停用角色';
     await page.getByRole('switch', { name: '启用角色' }).click();
     const [metadataReply] = await Promise.all([page.waitForResponse(r => r.url().endsWith('/roles/' + saved.id) && r.request().method() === 'PUT'), page.getByRole('button', { name: '保存基本信息', exact: true }).click()]);
@@ -96,13 +120,13 @@ let step = '登录'; let diagnosticPage;
       const result = await reply.json();
       if (result.total > 200) throw new Error('测试角色数量超过清理边界');
       for (const role of result.list) {
-        if (/^FBL_BROWSER_[0-9]+$/.test(role.code) && role.name === '浏览器验证角色' && role.enabled && !role.protected && role.permissions.length === 0) {
+        if (/^FBL_BROWSER_[0-9]+$/.test(role.code) && role.name === '浏览器验证角色' && role.enabled && !role.protected && role.permissions.every(p => p === 'purchase:order:read')) {
           const response = await fetch('/api/v1/iam/roles/' + role.id, { method: 'PUT', headers: { ...headers, 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify({ expectedVersion: role.version, name: role.name, enabled: false }) });
           if (!response.ok) throw new Error('测试角色停用失败');
         }
       }
     });
-    await page.screenshot({ path: '/tmp/erp-fbl-s1-workbench.png', fullPage: true });
+    await page.screenshot({ path: scopeCheck ? '/tmp/erp-fbl-s2a-workbench.png' : '/tmp/erp-fbl-s1-workbench.png', fullPage: true });
     step = '关闭侧栏';
     await page.locator('.ant-drawer-close').click();
     await page.getByRole('dialog').waitFor({ state: 'hidden' });
@@ -111,7 +135,7 @@ let step = '登录'; let diagnosticPage;
     assert.equal(await page.evaluate(() => Object.keys(sessionStorage).filter(k => k.startsWith('oidc.user:')).length), 0);
     await page.goto(base + '/workbench/');
     await page.getByRole('link', { name: '前往登录' }).waitFor();
-    console.log(JSON.stringify({ pkce: 'PASS', sharedSession: 'PASS', rolesApi: 200, createLostResponseReplay: 'PASS', permissions: 'PASS', disable: 'PASS', expiredTokenRefresh: 'PASS', keyboardRefresh: 'PASS', logout: 'PASS', noSession: 'PASS' }));
+    console.log(JSON.stringify({ pkce: 'PASS', sharedSession: 'PASS', rolesApi: 200, createLostResponseReplay: 'PASS', permissions: 'PASS', scope: scopeCheck ? 'PASS' : 'NOT_RUN', disable: 'PASS', expiredTokenRefresh: 'PASS', keyboardRefresh: 'PASS', logout: 'PASS', noSession: 'PASS' }));
     await context.close();
   } finally { if (diagnosticPage && !diagnosticPage.isClosed() && diagnosticPage.url().startsWith(base)) await diagnosticPage.screenshot({ path: '/tmp/erp-fbl-s1-diagnostic.png', fullPage: true }).catch(() => {}); await browser.close(); }
-})().catch(() => { console.error('角色浏览器验证失败步骤：' + step); process.exitCode = 1; });
+})().catch(error => { console.error('角色浏览器验证失败步骤：' + step); if (step !== '登录') console.error(String(error.message).split('\n')[0].replace(/https?:\/\/\S+/g,'[URL]')); process.exitCode = 1; });

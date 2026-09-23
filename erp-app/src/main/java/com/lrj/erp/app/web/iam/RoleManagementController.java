@@ -37,6 +37,12 @@ public class RoleManagementController {
     /** 权限替换不信任前端按钮是否可见。 */
     @PutMapping("/roles/{id}/permissions") @RequiresPermission("iam:role:write")
     public ResponseEntity<Role> permissions(@PathVariable String id,@RequestHeader(value="Idempotency-Key",required=false) String key,@RequestBody JsonNode body){return reply(service.assignPermissions(id(id),key,reader.read(body,Permissions.class)));}
+    /** 指定组织/公司集合由服务端验证存在性、类型及当前租户。 */
+    @PutMapping("/roles/{id}/data-scope") @RequiresPermission("iam:role:write")
+    public ResponseEntity<Role> scope(@PathVariable String id,@RequestHeader(value="Idempotency-Key",required=false) String key,@RequestBody JsonNode body){return reply(service.assignScope(id(id),key,reader.read(body,ScopeUpdate.class)));}
+    /** 返回有界授权组织森林，不截断后伪装完整树。 */
+    @GetMapping("/orgs/tree") @RequiresPermission("iam:org:read")
+    public ResponseEntity<List<OrgNode>> tree(){return reply(service.organizationTree());}
     /** 畸形JSON在进入DTO前拒绝，不以系统错误掩盖调用方输入问题。 */
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<com.lrj.erp.app.web.ErrorResponse> malformed(){

@@ -71,10 +71,9 @@ public class AccessContextAssembler {
                 widest = candidate;
             }
         }
-        // SPECIFIED_* 需要具体 id 列表，P1 暂不支持在角色上配置明细，
-        // 命中时按 DEPT_AND_BELOW 处理并留待 P2 补充配置表
+        // 旧摘要不能表达按动作合并的指定集合；明确拒绝旧查询，新增入口使用ActionScopeService。
         if (widest == DataScopeType.SPECIFIED_ORG || widest == DataScopeType.SPECIFIED_COMPANY) {
-            widest = DataScopeType.DEPT_AND_BELOW;
+            return DataScope.denied(widest);
         }
         return DataScope.of(widest);
     }

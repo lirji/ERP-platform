@@ -1,0 +1,62 @@
+{
+  "slice": "FBL-S2A",
+  "status": "PASS",
+  "date": "2026-09-23",
+  "baseCommit": "527ee1dbc020616e92cc3fc661013f9987eff9ee",
+  "sourceSha256": {
+    "erp-app/src/main/java/com/lrj/erp/app/web/iam/RoleManagementController.java": "621d1127a6fc79be2552fd5e778943054e8b6265f7f364b1414e3962bd8a14ab",
+    "erp-app/src/main/java/com/lrj/erp/app/web/iam/RoleRequestReader.java": "9e97a8a1bc32405d3ee7aa65b12ee6425398cdd487a77a2e135154430080fede",
+    "erp-iam/src/main/java/com/lrj/erp/iam/security/AuthErrorCode.java": "986539f5e0de4c22a2771af03f116b0da63923911d5ebcffd99fc36d2521a0df",
+    "erp-iam/src/main/java/com/lrj/erp/iam/security/TenantAndDataScopeHandler.java": "098afa1a0a0d394faa4bbfeb610a6e3c43a730b59b191f180a923ff62635452b",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/AccessContextAssembler.java": "4c1ac7086dd57fdb8b1f2e94706d10b2d001757983dac9c4310ef3f444bcffac",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/RoleManagementService.java": "593a3cc925ca5e0b56397ef8b10020aa2b7f107f5ce550b0f90b7dba76146497",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/RoleModels.java": "e7073b2d274f5fd132ac43f1824e58fd0cc523d28bcde4d47eeb3c981ec3374e",
+    "erp-kernel/src/main/java/com/lrj/erp/kernel/context/DataScope.java": "e42cbe9b8fab5a23a98bfacf57d2f294b0e8e6a42113086afab2b1080beb21bd",
+    "erp-web/src/app/App.tsx": "c21a4dd75e9dd33e81ddbe8f24e5e88d5f646f73814ce6e4caeac6c10802affb",
+    "erp-web/src/features/iam/RolesPage.tsx": "ff05984d45e05a4da60a2cdea9b862be9dbecfe6157cfa5952339a4bb4e4f809",
+    "erp-web/tests/roles.test.tsx": "e16bb0d347b6847c3e255df110cf0964b21e28159ff15b74823d92c2547f1067",
+    "scripts/role-management-browser-smoke.cjs": "a5da40f8e5417b55e2bbc70512f0fb19d79d46c0b11e352b83ac84acbefaf95e",
+    "erp-app/src/test/java/com/lrj/erp/it/RoleScopeIT.java": "fb778bee465c12cbe4cf379df495bcd803a8ebb76d3c2d22587ccc411f97ccd4",
+    "erp-app/src/test/java/com/lrj/erp/it/support/ActionScopeProbeMapper.java": "da040ac97d83b0a8a2946da80fbe1bf1b1382e9a148139d2dc849d8851dcc87d",
+    "erp-app/src/test/resources/mapper/ActionScopeProbeMapper.xml": "9006b04ef46ca98c64ba66f4cacdd89004297c48d518ecf007da50e4e7d47b3a",
+    "erp-iam/src/main/java/com/lrj/erp/iam/repository/RoleScopeMapper.java": "a5e7a4e90ea9707e182cf8b325a9655523129e6b6ef7a13df1fee467c63c3b33",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/ActionScopeService.java": "0ca32f59e65ce2427984d84db959b416f76768c52a149fc634ac72e894cda2bf",
+    "erp-iam/src/main/resources/db/migration/V125__role_subject_scopes.sql": "38d5e6efe570f02a692a0ade5b08f4f9b53eff2caac706c400c4cdcffdfbdb95",
+    "erp-iam/src/main/resources/mapper/RoleScopeMapper.xml": "ad38191c2236224794291232b15fda8c5b5af25b9ed449abd8ff777d7f99b21d",
+    "erp-kernel/src/main/java/com/lrj/erp/kernel/context/ActionScope.java": "891f69edff61e1c402b950644596fff8dddd7f5f89b366fece3f8a86098a8342",
+    "erp-kernel/src/main/resources/mapper/ActionScopeSql.xml": "9537ca41358ab78d01c5685959b722a9a640b24b8a571e2d8fe356aae02c603d"
+  },
+  "maven": {
+    "command": "mvn -q clean verify",
+    "tests": 189,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "frontend": {
+    "tests": 12,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "build": "PASS"
+  },
+  "browser": {
+    "pkce": "PASS",
+    "sharedSession": "PASS",
+    "rolesApi": 200,
+    "createLostResponseReplay": "PASS",
+    "permissions": "PASS",
+    "scope": "PASS",
+    "disable": "PASS",
+    "expiredTokenRefresh": "PASS",
+    "keyboardRefresh": "PASS",
+    "logout": "PASS",
+    "noSession": "PASS"
+  },
+  "jarSha256": "66d00ffd8546587cf34ff7256f46e0cbda47d28543428154e6123cee53997c07",
+  "revisionFence": "后端189项之后只改前端标签/表单名称/测试与浏览器脚本；set -e顺序执行build、12项测试、lint、JAR打包，逐文件校验JAR静态资源==dist，再真实浏览器PASS。",
+  "limitations": [
+    "仓库仍为NONE，S7B配置",
+    "S2B授权修订与在途命令锁未实施",
+    "新业务入口按后续切片使用ActionScope，不宣称现有所有内部查询均已迁移"
+  ]
+}

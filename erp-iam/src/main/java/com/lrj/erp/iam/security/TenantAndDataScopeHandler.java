@@ -91,6 +91,7 @@ public class TenantAndDataScopeHandler implements TenantLineHandler, MultiDataPe
         }
 
         AccessContext ctx = AccessContextHolder.require();
+        if (ctx.dataScope().denied()) return new EqualsTo(new LongValue(1),new LongValue(0));
         String alias = table.getAlias() != null ? table.getAlias().getName() : table.getName();
 
         return switch (ctx.dataScope().type()) {

@@ -40,7 +40,7 @@ function Workbench() {
         <Button onClick={() => void logout()}>退出当前 ERP 登录</Button>
       </Flex></Layout.Header>
       <Layout.Content className="content"><Suspense fallback={<Spin aria-label="加载页面" />}><Routes>
-        <Route path="/iam/roles" element={<RolesPage client={session.client} permitted={permitted} canManage={session.identity.permissions.includes('iam:security:admin') && session.identity.permissions.includes('iam:role:write')} />} />
+        <Route path="/iam/roles" element={<RolesPage client={session.client} permitted={permitted} canManage={session.identity.permissions.includes('iam:security:admin') && session.identity.permissions.includes('iam:role:write')} canConfigureScopes={session.identity.permissions.includes('iam:org:read')} />} />
         <Route path="/" element={<Navigate to="/iam/roles" replace />} />
         <Route path="*" element={<Alert type="warning" title="找不到此页面" action={<Button href="#/iam/roles">返回角色目录</Button>} />} />
       </Routes></Suspense></Layout.Content>

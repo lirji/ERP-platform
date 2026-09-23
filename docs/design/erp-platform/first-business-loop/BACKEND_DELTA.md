@@ -26,7 +26,7 @@ Owner：backend-architecture-design。状态：APPROVED。基于既有[模块化
 
 新业务入口不能沿用“最大范围枚举”表达多个不相包含的范围。对请求权限p，先筛选拥有p的启用角色；每角色生成一项范围表达式；有效范围是这些表达式的并集，外层恒加tenant过滤。不能先取所有角色权限并集、再取所有范围并集后交叉配对，防止“广范围只读角色”扩大“窄范围写角色”。
 
-组织/公司：SELF、DEPT、DEPT_AND_BELOW沿原含义；SPECIFIED_ORG首批按既有SQL实现的指定子树前缀定义（末尾分隔符保护），作为待批准澄清，不声称旧文档IN与前缀完全等价；SPECIFIED_COMPANY为显式公司集合；ALL仅本租户。指定集合不得空；角色被禁用不参与。没有任何适用角色时false，不降级到部门范围。
+组织/公司：SELF、DEPT、DEPT_AND_BELOW沿原含义；SPECIFIED_ORG首批按既有SQL实现的指定子树前缀定义（末尾分隔符保护），作为已批准范围语义，不声称旧文档IN与前缀完全等价；SPECIFIED_COMPANY为显式公司集合；ALL仅本租户。指定集合不得空；角色被禁用不参与。没有任何适用角色时false，不降级到部门范围。
 
 仓库：每角色仓库模式为NONE/SELECTED/ALL；默认NONE。涉及采购/收货/库存的角色必须显式配置；表达式为该角色的组织/公司谓词 AND 该角色仓库谓词，再跨角色OR，禁止分别并集扩大组合。ALL指本租户且满足该角色主体范围的仓库，并非跨租户。修改公司归属/仓库归属不能借用旧授权。
 
@@ -75,4 +75,4 @@ Owner：backend-architecture-design。状态：APPROVED。基于既有[模块化
 
 应验证跨租户、跨公司/仓库、混合角色、审批自己/串单、请求重放、超收、取消竞争、错误币种/快照伪造、权限撤销与在途命令序列，以及AP延迟/重放。
 
-SKILL_HANDOFF：设计增量完成，内部gate=PASS_WITH_ASSUMPTIONS；新增范围语义/管理权限与HTTP契约待设计确认。未运行迁移/测试/部署。TECH_SELECTION沿用，无新增后端主要技术；前端精确版本由S0核验。
+SKILL_HANDOFF：设计增量完成，内部gate=PASS_WITH_ASSUMPTIONS；新增范围语义/管理权限与HTTP契约已获2026-09-23执行授权。未运行迁移/测试/部署。TECH_SELECTION沿用，无新增后端主要技术；前端精确版本由S0核验。

@@ -14,6 +14,11 @@ public class RoleRequestReader {
         for(String field:List.of("code","name","expectedVersion")){if(body.has(field)&&!body.get(field).isTextual())throw new IllegalArgumentException();}
         if(body.has("enabled")&&!body.get("enabled").isBoolean())throw new IllegalArgumentException();
         if(body.has("permissions")&&(!body.get("permissions").isArray()||java.util.stream.StreamSupport.stream(body.get("permissions").spliterator(),false).anyMatch(v->!v.isTextual())))throw new IllegalArgumentException();
+        if(body.has("scope")){
+            var scope=body.get("scope");if(!scope.isObject())throw new IllegalArgumentException();
+            for(String field:List.of("type","warehouseMode"))if(!scope.has(field)||!scope.get(field).isTextual())throw new IllegalArgumentException();
+            for(String field:List.of("orgIds","companyIds","warehouseIds"))if(!scope.has(field)||!scope.get(field).isArray()||java.util.stream.StreamSupport.stream(scope.get(field).spliterator(),false).anyMatch(v->!v.isTextual()))throw new IllegalArgumentException();
+        }
         return json.readerFor(type).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(body);
     }catch(Exception e){throw new DomainException(SystemErrorCode.MALFORMED_BODY);}}
 }
