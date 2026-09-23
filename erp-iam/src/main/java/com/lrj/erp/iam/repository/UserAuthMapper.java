@@ -17,9 +17,13 @@ import java.util.List;
 @InterceptorIgnore(tenantLine = "true", dataPermission = "true")
 public interface UserAuthMapper {
 
-    /** 按外部身份标识（OIDC subject）或用户名定位用户；返回 null 表示无此用户。 */
+    /** 仅供显式开发模式按用户名定位用户；返回 null 表示无此用户。 */
     UserAuthRecord findUser(@Param("tenantCode") String tenantCode,
                             @Param("username") String username);
+
+    /** 已验签的签发方、组织与稳定 subject 必须同时匹配；不按用户名回退。 */
+    UserAuthRecord findOidcUser(@Param("issuer") String issuer, @Param("owner") String owner,
+                               @Param("subject") String subject);
 
     /** 用户经全部角色获得的权限点并集。 */
     List<String> findPermissions(@Param("tenantId") long tenantId, @Param("userId") long userId);

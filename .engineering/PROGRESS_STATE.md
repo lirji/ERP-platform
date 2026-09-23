@@ -1,6 +1,6 @@
 # PROGRESS STATE
 
-> 最后更新：2026-09-22 · Codex 接手 Claude 会话后回写
+> 最后更新：2026-09-23 · P1-OIDC 补充实施
 > 用途：跨会话 / 跨客户端（Claude · Codex · Cursor）恢复。
 > **Reality is authoritative**：恢复时先验真实仓库与 Runtime，再信本文件。
 
@@ -9,12 +9,16 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P11 Gate PASS**；158 项全量回归 |
+| 当前 Phase | **P1-OIDC VERIFYING**；原 P11 已交付，新增认证链路验证中 |
 | 分支 | main；P5/P6/P7/P9/P10/P11 已合并推送 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
-## P11 当前验收
+## P1-OIDC 当前验收
+
+按 auth-platform 真实方案实施，客户端与回调、本地 PKCE 登录、受控身份绑定和 JWT 负向验证已通过；最终全量回归、本地容器与 Git/CI 正在收尾。见 CODEX_PROGRESS.md 和 docs/security/OIDC.md。生产 HTTPS 域名与生产验收仍待实际目标。
+
+## P11 历史验收
 
 158 项全量回归通过；Compose 应用健康、演示重复初始化/清理/重建及监控检查通过。任务分支 CI 35681340638、main CI 35681661831 均全绿；main 合并提交 41b6854 已推送，当前仅完成交付文档回写。详见 TEST_RESULT-P11.json 和 CODEX_PROGRESS.md。
 
@@ -129,7 +133,7 @@ Smoke：app 启动 UP · Flyway v60 · 对账通过
 | 项 | 说明 |
 |---|---|
 | ~~`origin` remote~~ | 已由用户确认，2026-09-21 推送完成（传输改用 HTTPS，原因见下） |
-| **`BLOCK-P1-01`** | **生产无认证路径**：临时请求头通道默认关闭且可伪造，OIDC 未接入。Casdoor 已实测可达（`:8000`，discovery 正常），接入前需在 Casdoor 注册 ERP 客户端（需用户决定客户端标识与回调地址）。**关闭前不得对外暴露** |
+| **`BLOCK-P1-01`** | P1-OIDC 已实现后端认证及本地真实客户端/回调，正在最终验证；生产 HTTPS 域名与生产联调未完成，不宣称对外上线就绪 |
 | `Q-09` | 超收比例 / 是否允许负库存 —— **P4 之前**必须答复，已答复：不允许超收、不允许负库存；无放开开关 |
 | `SPECIFIED_ORG/COMPANY` | 角色上暂无明细配置表，命中时按 `DEPT_AND_BELOW` 处理，待 P2 补 |
 | `Q-02`/`Q-03` | 库位精度、是否对接 `wms-platform` —— P3 前答复较好 |

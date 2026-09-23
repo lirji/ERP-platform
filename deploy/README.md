@@ -23,3 +23,7 @@
 历史 V2 重命名状态表依赖 V30 的建表，乱序开关无法解决空库排序。新增 `B30__platform_bootstrap.sql` 按真实依赖汇总 V1/V10/V20/V30/V2：仅空库采用 B30，然后执行 V31 及后续版本；已有迁移历史的数据库继续原路径，原脚本/校验值不变。此行为采用 [Flyway baseline migrations](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/baseline-migrations)，没有执行 repair、删除历史或设置 baseline-on-migrate。
 
 `FreshSchemaMigrationIT` 每次创建随机隔离 schema，验证完整迁移、重复迁移无新增执行，并对比业务表列结构；只清理自身 schema。全新 CI 数据库还实际跑完整业务测试和应用冷启动。
+
+## 统一登录
+
+本地 Casdoor 客户端由 auth-platform 的 `deploy/erp-platform-provision.py` 管理，ERP 提供 `/login`、实际 `/auth/callback` 与资源服务器验签。配置、身份绑定、验证与生产边界见 [OIDC 接入](../docs/security/OIDC.md)。默认不启用 OIDC，业务接口保持拒绝。

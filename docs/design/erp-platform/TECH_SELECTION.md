@@ -73,3 +73,7 @@
 - [x] 不适用项明确写 `无 / 不引入`，并写了触发条件
 - [x] Decision 可追溯到 Fact / Constraint / Assumption
 - [ ] **版本精确核验未完成**：Spring Boot 3.3.5 的当前维护状态、MyBatis-Plus 与 Spring Boot 3.3.x 的兼容版本、Flyway 与 PG16 的兼容版本 —— **Phase 0 的第一个 ChangeSet 必须核验并写入 ADR，本规划不得声称已核验**
+
+## P1-OIDC 补充（2026-09-23）
+
+复用 Boot 管理的 spring-boot-starter-oauth2-resource-server（Spring Security 6.3.9），浏览器使用同源 WebJar `org.webjars.npm:oidc-client-ts:3.2.1`。选择 WebJar 是为了让最小回调页随唯一 JVM Artifact 构建交付，无新增 Node 服务或 CDN 依赖；后续完整前端可以沿用 OIDC 契约。许可、已知公告核查及未解决维护风险见 [OIDC](../../security/OIDC.md)。

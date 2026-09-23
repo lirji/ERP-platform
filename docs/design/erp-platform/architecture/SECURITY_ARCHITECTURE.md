@@ -6,7 +6,7 @@
 
 | 关注点 | 需要？ | 方案 | 执行点 | 引入阶段 |
 |---|---|---|---|---|
-| Authentication | ✅ | **INTEGRATE**：`auth-platform` / Casdoor，OIDC 授权码 + PKCE | 网关过滤链校验 JWT | Phase 1 |
+| Authentication | ✅ | **INTEGRATE**：`auth-platform` / Casdoor，OIDC 授权码 + PKCE | erp-app Spring Security 过滤链校验 JWT | Phase 1 |
 | SSO | ✅ | 同上（Casdoor 已支持企业 IdP 联邦） | — | Phase 1 |
 | RBAC | ✅ | **BUILD in ERP**：User–Role–Permission，权限点为 `模块:资源:动作` | 服务端注解 + 拦截器 | Phase 1 |
 | ABAC | ❌ 不引入 | 当前规则用 RBAC + DataScope 可表达 | — | 出现"按单据金额/状态动态授权"时再评估 |
@@ -75,3 +75,10 @@ HTTP 请求
 ```
 
 核心业务数据必须做到**可追踪、可审计、可解释**：给定一张单据，能回答「它从哪来、它产生了什么、谁在什么时候改了什么、为什么现在是这个状态」。前三个问题由 `doc_document_link` + 审计日志回答，第四个由状态迁移日志回答。
+
+## 6. P1-OIDC 实施映射（2026-09-23）
+
+`BearerTokenAuthenticationFilter → AccessContextFilter → PermissionInterceptor → Mapper 数据范围`。
+令牌先验证 issuer/audience/时效/签名，外部 `(issuer, owner, sub)` 通过显式绑定定位本地身份；保留 ERP 数值 userId/tenantId，不修改历史业务外键。外部组织只存在于 IAM 适配字段，不成为业务组织模型。
+
+登录与实际回调入口、配置、V121、跨版本兼容、故障处理与生产待配置见 [OIDC 接入](../../../security/OIDC.md)。

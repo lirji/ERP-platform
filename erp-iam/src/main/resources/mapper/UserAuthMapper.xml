@@ -18,6 +18,22 @@
           AND u.username = #{username}
     </select>
 
+    <select id="findOidcUser" resultType="com.lrj.erp.iam.repository.UserAuthMapper$UserAuthRecord">
+        SELECT u.id         AS userId,
+               u.tenant_id  AS tenantId,
+               u.company_id AS companyId,
+               o.org_path   AS orgPath,
+               t.timezone   AS timezone,
+               u.enabled    AS userEnabled,
+               t.enabled    AS tenantEnabled
+        FROM iam_user u
+                 JOIN iam_tenant t ON t.id = u.tenant_id
+                 JOIN iam_org o ON o.id = u.org_id AND o.tenant_id = u.tenant_id
+        WHERE t.oidc_issuer = #{issuer}
+          AND t.oidc_owner = #{owner}
+          AND u.external_id = #{subject}
+    </select>
+
     <select id="findPermissions" resultType="java.lang.String">
         SELECT DISTINCT rp.permission
         FROM iam_user_role ur
