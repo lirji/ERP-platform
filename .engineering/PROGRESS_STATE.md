@@ -1,6 +1,6 @@
 # PROGRESS STATE
 
-> 最后更新：2026-09-23 · P1-OIDC 补充实施
+> 最后更新：2026-09-23 · FBL首批业务方案
 > 用途：跨会话 / 跨客户端（Claude · Codex · Cursor）恢复。
 > **Reality is authoritative**：恢复时先验真实仓库与 Runtime，再信本文件。
 
@@ -9,12 +9,21 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P1-OIDC DONE**；179 项回归、真实 Casdoor 联调及 CI 通过 |
+| 当前 Phase | **FBL IMPLEMENTING**；D0用户批准，S0 IN_PROGRESS |
 | 分支 | main；原 P5–P11 与 P1-OIDC 均已合并推送 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
-## P1-OIDC 当前验收
+## FBL 当前规划状态
+
+- 用户目标：首批权限管理→采购必需主数据→采购→角色待办审批→收货→库存/应付查询。
+- 用户确认审批规则：有权限且非提交人的审批员可从角色池处理；前端选择React + TypeScript + Vite + Ant Design，选型及切片已同步。
+- 产物：[方案入口](../docs/design/erp-platform/first-business-loop/BRIEF.md)、[候选切片](../docs/design/erp-platform/first-business-loop/IMPLEMENTATION_SLICES.md)。
+- FBL-D0=DONE（用户开始执行授权），S0=IN_PROGRESS，后续=TODO；没有新实施/验证DONE，未运行Maven或浏览器。
+- 下一动作：确认并冻结设计，再由implementation-slicing将候选计划转正式版本，S0→S1→S2A→S2B依序推进。
+- PLAN_ONLY：无产品、Runtime、数据库、Git发布变化；文档验证见本批BRIEF。
+
+## P1-OIDC 历史验收
 
 按 auth-platform 真实方案完成客户端与回调、本地 PKCE 登录/刷新、受控身份绑定和 JWT 负向验证；179 项全量回归、本地容器及两仓代码发布完成。ERP 分支 CI 35810514966、main CI 35810843126 均通过，见 DELIVERY_RESULT-P1-OIDC.md。生产 HTTPS 域名与生产验收仍待实际目标。
 

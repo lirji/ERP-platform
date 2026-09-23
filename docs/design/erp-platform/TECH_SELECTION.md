@@ -27,7 +27,7 @@
 | 数据库运行时 | — | — | 隔离级别 **READ COMMITTED**（PG 默认）；HikariCP 上限显式配置；语句超时 30s（报表 60s） | 库存并发靠显式行锁 + 乐观锁，不靠 REPEATABLE READ | SERIALIZABLE：吞吐代价高且会带来大量重试 | — | Phase 0 |
 | 数据保留 | — | 无 / TTL / archive | **MVP 无额外策略**，流水表预留按 `posted_at` 分区方案 | 未给保留年限（`Q-08`/NFR） | 不编造统一保留期限 | — | 触发后再议 |
 | 对象存储 | `dev-infra` MinIO | 本地磁盘 / MinIO | **MinIO** | 附件需跨实例可见；`REUSE_EXISTING` | 本地磁盘：多实例不共享 | `dev-infra` 现有版本 | Phase 2 |
-| 前端 | — | Vue3+TS / React18+TS | **Vue 3 + TypeScript + Vite + Element Plus** | 提示词建议栈；ERP 后台表单/表格密集，Element Plus 的表格与表单组件成熟 | React+antd5：`oa-platform` 用它，但本项目无复用代码，按提示词建议即可 | 待 Phase 9 核验具体版本 | 与后端切片并行 |
+| 前端 | — | React+TS / Vue3+TS | **React + TypeScript + Vite + Ant Design** | 2026-09-23用户明确偏好React；业务前端尚未开发，适合统一表单/表格工作台 | Vue3+Element Plus为被本次用户决定替代的旧选型；不混用第二组件体系 | FBL-S0核验并锁定React/react-dom、Ant Design、React Router、Vite及Node兼容版本 | 首批业务切片使用；当前仅设计已更新 |
 
 ## 2. 与提示词建议栈的 4 处差异
 
@@ -77,3 +77,12 @@
 ## P1-OIDC 补充（2026-09-23）
 
 复用 Boot 管理的 spring-boot-starter-oauth2-resource-server（Spring Security 6.3.9），浏览器使用同源 WebJar `org.webjars.npm:oidc-client-ts:3.2.1`。选择 WebJar 是为了让最小回调页随唯一 JVM Artifact 构建交付，无新增 Node 服务或 CDN 依赖；后续完整前端可以沿用 OIDC 契约。许可、已知公告核查及未解决维护风险见 [OIDC](../../security/OIDC.md)。
+
+
+## 2026-09-23：首批业务前端改用 React（用户决定）
+
+状态：选型方向已由用户确认，业务前端尚未实现。用户明确“更倾向React”，替代原Vue3/TypeScript/Vite/Element Plus选择；原选择保留于本变更记录，不改写历史交付结论。
+
+当前栈：React + TypeScript + Vite + Ant Design，React Router HashRouter承担工作台路由，类型化fetch及自定义Hooks处理请求，Context/useReducer仅管理必要会话状态。单一Ant Design组件体系，不引入Next.js/SSR服务或额外运行容器。静态资产仍随erp-app发布，OIDC客户端、回调和HTTP协议保持既有边界。
+
+迁移成本：没有已实现的Vue业务页面或前端锁文件，需要更新设计和后续脚手架，不需要搬迁现成业务UI。FBL-S0负责锁定依赖版本、peerDependencies/Node engines核对及实际构建；不能将官网版本当成已安装或已验证版本。详见[首批前端架构](first-business-loop/FRONTEND_ARCHITECTURE.md)。
