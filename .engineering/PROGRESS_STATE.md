@@ -9,14 +9,14 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **P1-OIDC VERIFYING**；原 P11 已交付，新增认证链路验证中 |
-| 分支 | main；P5/P6/P7/P9/P10/P11 已合并推送 |
+| 当前 Phase | **P1-OIDC DONE**；179 项回归、真实 Casdoor 联调及 CI 通过 |
+| 分支 | main；原 P5–P11 与 P1-OIDC 均已合并推送 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
 ## P1-OIDC 当前验收
 
-按 auth-platform 真实方案实施，客户端与回调、本地 PKCE 登录、受控身份绑定和 JWT 负向验证已通过；最终全量回归、本地容器与 Git/CI 正在收尾。见 CODEX_PROGRESS.md 和 docs/security/OIDC.md。生产 HTTPS 域名与生产验收仍待实际目标。
+按 auth-platform 真实方案完成客户端与回调、本地 PKCE 登录/刷新、受控身份绑定和 JWT 负向验证；179 项全量回归、本地容器及两仓代码发布完成。ERP 分支 CI 35810514966、main CI 35810843126 均通过，见 DELIVERY_RESULT-P1-OIDC.md。生产 HTTPS 域名与生产验收仍待实际目标。
 
 ## P11 历史验收
 
@@ -93,7 +93,7 @@ Smoke：app 启动 UP · Flyway v60 · 对账通过
 `mvn clean verify` EXIT 0（连跑两次）· 单元/架构 29 + 集成 40 = **69**
 12 张 md_* 表 / 107 条注释 / 无注释字段数 0
 
-## P1 出口条件实测结果（GATE-P1-20260921）
+## P1 原始验收（历史 GATE-P1-20260921；OIDC 补齐见首节）
 
 | # | 条件 | 结果 |
 |---|---|---|
@@ -133,7 +133,7 @@ Smoke：app 启动 UP · Flyway v60 · 对账通过
 | 项 | 说明 |
 |---|---|
 | ~~`origin` remote~~ | 已由用户确认，2026-09-21 推送完成（传输改用 HTTPS，原因见下） |
-| **`BLOCK-P1-01`** | P1-OIDC 已实现后端认证及本地真实客户端/回调，正在最终验证；生产 HTTPS 域名与生产联调未完成，不宣称对外上线就绪 |
+| **`BLOCK-P1-01`** | 代码/本地认证缺口已关闭：真实客户端、回调、身份绑定和 CI 通过。生产 HTTPS 域名与生产联调未完成，不宣称对外上线就绪 |
 | `Q-09` | 超收比例 / 是否允许负库存 —— **P4 之前**必须答复，已答复：不允许超收、不允许负库存；无放开开关 |
 | `SPECIFIED_ORG/COMPANY` | 角色上暂无明细配置表，命中时按 `DEPT_AND_BELOW` 处理，待 P2 补 |
 | `Q-02`/`Q-03` | 库位精度、是否对接 `wms-platform` —— P3 前答复较好 |
@@ -149,7 +149,7 @@ P3 的预占链（预占→部分消耗→释放）已就绪，P5 直接建立�
 
 P6 两条内部业务闭环已验证并交付；用户后续已授权继续 P7–P11，当前状态见首节。
 
-可并行推进 `BLOCK-P1-01` 的 OIDC 接入（需用户先在 Casdoor 注册客户端）。
+`BLOCK-P1-01` 的客户端与 OIDC 实现已由本轮补齐；生产域名及环境验收另行处理。
 
 ## 已答复的问题
 
