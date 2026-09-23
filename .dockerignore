@@ -9,3 +9,8 @@
 CODEX_PROGRESS.md
 *.log
 **/__pycache__
+
+**/node_modules
+**/dist
+**/playwright-report
+**/test-results

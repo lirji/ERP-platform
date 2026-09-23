@@ -12,3 +12,5 @@
 | 能力缺口 | [CAPABILITY_MAP](../.engineering/exploration/CAPABILITY_MAP.md) | 只读分析，不是实施完成证明 |
 
 本批文档描述目标设计，React方向已确认但尚未安装依赖，未更改实际软件版本、运行连接、数据库迁移或凭据；无需更新私密连接记录。落地时由模块Owner同步实现与契约，Progress仅记录状态。本轮未读写秘密。
+
+- [React工作台运行](../erp-web/README.md)；[S0验收](../.engineering/gates/TEST_RESULT-FBL-S0.md)

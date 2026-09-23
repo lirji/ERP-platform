@@ -9,7 +9,7 @@
 1. 本文：首批交付范围及设计门禁。
 2. [前端设计](FRONTEND_ARCHITECTURE.md)：路由、页面、状态、选型与运行方式。
 3. [HTTP 契约](HTTP_CONTRACTS.md)：本批新增接口、DTO、安全、幂等和兼容语义。
-4. [实施切片](IMPLEMENTATION_SLICES.md)：有序候选切片及可观察验收。
+4. [实施切片](IMPLEMENTATION_SLICES.md)：已批准有序切片及可观察验收。
 
 配套 [后端设计增量](BACKEND_DELTA.md) 明确权威数据、事务及迁移归属；不替代 [总体架构](../BACKEND_ARCHITECTURE.md) 或 [既有选型](../TECH_SELECTION.md)。
 
@@ -69,7 +69,7 @@
 | 审批状态→采购状态 | PASS：同库事务，绑定实例，非提交人，撤回及重提闭环 | HTTP§采购、后端§事务 |
 | 重试→库存/财务正确性 | PASS：命令幂等记录与业务同事务；财务仍异步幂等 | 后端§幂等 |
 | 权限→查询与命令 | PASS_WITH_ASSUMPTIONS：新增角色级范围表达需实现及兼容回归 | 后端§安全 |
-| 已批准契约前置 | HOLD：新增 HTTP/角色级范围尚为待审设计，不能标实现 READY | 切片门禁 |
+| 已批准契约前置 | PASS：用户2026-09-23批准新增HTTP/角色级范围，允许依序实施 | 切片门禁 |
 
 计划编制完成，不等于业务测试通过。下一门禁是确认本套设计后冻结新增契约；不需要重新决定总体模块或采购核心规则。
 
@@ -79,7 +79,7 @@
 - PASS：19个候选实施切片依赖均存在且按拓扑先后排序；D0为额外设计门禁。
 - PASS：git diff --check；本批后续React选型同步修改TECH_SELECTION、CODEX_PROGRESS与PROGRESS_STATE；未修改产品代码、测试、配置、迁移或既有HTTP契约。
 - NOT_RUN：Maven、浏览器、数据库、Runtime与CI；本轮没有产品实现，因此不以文档检查替代这些验收。
-- 技能交接：frontend/backend设计文档完成；implementation-slicing候选拆解完成、正式发布HOLD；project-documentation索引同步完成；update-progress-docs当前任务与历史OIDC记录分离。
+- 技能交接：frontend/backend设计文档完成；implementation-slicing正式计划已批准；project-documentation索引同步完成；update-progress-docs当前任务与历史OIDC记录分离。
 
 ## 执行授权更新
 

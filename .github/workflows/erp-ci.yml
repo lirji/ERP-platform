@@ -1,9 +1,9 @@
 name: ERP verification
 on:
   push:
-    paths: ['**/src/**', '**/pom.xml', 'pom.xml', 'deploy/**', 'test-data/**', 'scripts/**', '.github/workflows/**', '.dockerignore']
+    paths: ['**/src/**', 'erp-web/**', '**/pom.xml', 'pom.xml', 'deploy/**', 'test-data/**', 'scripts/**', '.github/workflows/**', '.dockerignore']
   pull_request:
-    paths: ['**/src/**', '**/pom.xml', 'pom.xml', 'deploy/**', 'test-data/**', 'scripts/**', '.github/workflows/**', '.dockerignore']
+    paths: ['**/src/**', 'erp-web/**', '**/pom.xml', 'pom.xml', 'deploy/**', 'test-data/**', 'scripts/**', '.github/workflows/**', '.dockerignore']
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,6 +23,19 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      - name: Setup frontend Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.12.0'
+          cache: npm
+          cache-dependency-path: erp-web/package-lock.json
+      - name: Frontend checks
+        working-directory: erp-web
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm test
       - name: Prepare isolated local credentials
         shell: bash
         run: |

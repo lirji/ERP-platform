@@ -19,6 +19,8 @@
   -->
   <description>ERP 启动与组装模块，HTTP :8500</description>
 
+  <properties><skipFrontend>false</skipFrontend></properties>
+
   <dependencies>
     <!-- 组装全部业务模块：只有这里允许依赖所有模块 -->
     <dependency><groupId>com.lrj.erp</groupId><artifactId>erp-kernel</artifactId></dependency>
@@ -92,7 +94,24 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource><directory>src/main/resources</directory><filtering>false</filtering></resource>
+      <!-- 前端构建结果只进入可执行制品，不提交生成资源到源码目录。 -->
+      <resource><directory>../erp-web/dist</directory><targetPath>static/workbench</targetPath><filtering>false</filtering></resource>
+    </resources>
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId><artifactId>exec-maven-plugin</artifactId><version>3.5.0</version>
+        <configuration><workingDirectory>${project.basedir}/../erp-web</workingDirectory><skip>${skipFrontend}</skip></configuration>
+        <executions>
+          <execution><id>frontend-install</id><phase>generate-resources</phase><goals><goal>exec</goal></goals>
+            <configuration><executable>npm</executable><arguments><argument>ci</argument><argument>--no-audit</argument></arguments></configuration>
+          </execution>
+          <execution><id>frontend-build</id><phase>generate-resources</phase><goals><goal>exec</goal></goals>
+            <configuration><executable>npm</executable><arguments><argument>run</argument><argument>build</argument></arguments></configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!--
         显式绑定 failsafe 的 execution。spring-boot-starter-parent 只做 pluginManagement，
         不绑定生命周期——不写这段，*IT 会被 surefire 排除、又不被 failsafe 执行，

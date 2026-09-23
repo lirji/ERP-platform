@@ -81,8 +81,10 @@
 
 ## 2026-09-23：首批业务前端改用 React（用户决定）
 
-状态：选型方向已由用户确认，业务前端尚未实现。用户明确“更倾向React”，替代原Vue3/TypeScript/Vite/Element Plus选择；原选择保留于本变更记录，不改写历史交付结论。
+状态：用户确认React；S0工作台已实现并通过本地构建/测试。用户明确“更倾向React”，替代原Vue3/TypeScript/Vite/Element Plus选择；原选择保留于本变更记录，不改写历史交付结论。
 
 当前栈：React + TypeScript + Vite + Ant Design，React Router HashRouter承担工作台路由，类型化fetch及自定义Hooks处理请求，Context/useReducer仅管理必要会话状态。单一Ant Design组件体系，不引入Next.js/SSR服务或额外运行容器。静态资产仍随erp-app发布，OIDC客户端、回调和HTTP协议保持既有边界。
 
 迁移成本：没有已实现的Vue业务页面或前端锁文件，需要更新设计和后续脚手架，不需要搬迁现成业务UI。FBL-S0负责锁定依赖版本、peerDependencies/Node engines核对及实际构建；不能将官网版本当成已安装或已验证版本。详见[首批前端架构](first-business-loop/FRONTEND_ARCHITECTURE.md)。
+
+S0锁定：React/react-dom 19.3.0，Ant Design 6.6.5，React Router 7.18.4，TypeScript 5.9.3，Vite 8.3.0及React插件6.1.1；Node 24.12.0。OIDC客户端复用3.2.1。直接运行依赖MIT（OIDC为Apache-2.0），安装peer检查通过，2026-09-23 npm audit为0。权威版本见erp-web/package-lock.json，实际构建与验收见TEST_RESULT-FBL-S0。

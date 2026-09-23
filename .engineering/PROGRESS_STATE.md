@@ -9,8 +9,8 @@
 | 项 | 值 |
 |---|---|
 | System Version | Engineering Skill System **2.0.0**（`v2.0.0-final`，架构 FROZEN） |
-| 当前 Phase | **FBL IMPLEMENTING**；D0用户批准，S0 IN_PROGRESS |
-| 分支 | main；原 P5–P11 与 P1-OIDC 均已合并推送 |
+| 当前 Phase | **FBL IMPLEMENTING**；D0用户批准，S0 DONE |
+| 分支 | feat/fbl-business-workbench；FBL设计提交3dbbd86 |
 | Driver | Codex 本地直接执行；未发现可恢复 Runtime run_id，不沿用历史 health 断言 |
 | Drift | `NO_DRIFT` —— 三端 `_protocol` 为同一符号链接目标 `~/.cursor/skills/_protocol` |
 
@@ -19,9 +19,9 @@
 - 用户目标：首批权限管理→采购必需主数据→采购→角色待办审批→收货→库存/应付查询。
 - 用户确认审批规则：有权限且非提交人的审批员可从角色池处理；前端选择React + TypeScript + Vite + Ant Design，选型及切片已同步。
 - 产物：[方案入口](../docs/design/erp-platform/first-business-loop/BRIEF.md)、[候选切片](../docs/design/erp-platform/first-business-loop/IMPLEMENTATION_SLICES.md)。
-- FBL-D0=DONE（用户开始执行授权），S0=IN_PROGRESS，后续=TODO；没有新实施/验证DONE，未运行Maven或浏览器。
-- 下一动作：确认并冻结设计，再由implementation-slicing将候选计划转正式版本，S0→S1→S2A→S2B依序推进。
-- PLAN_ONLY：无产品、Runtime、数据库、Git发布变化；文档验证见本批BRIEF。
+- FBL-D0=DONE，S0=DONE，后续=TODO。S0已实现React真实角色查询/会话/构建，前端8项和Maven180项通过，真实OIDC浏览器通过，最终Docker镜像真实OIDC复验通过。
+- 下一动作：S0验收/Git/CI，然后连续实施S1普通角色与功能权限管理。
+- 当前为IMPLEMENTATION_AUTHORIZED；本地实现与正常Git交付有授权，不含生产部署。
 
 ## P1-OIDC 历史验收
 

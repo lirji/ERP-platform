@@ -1,0 +1,13 @@
+body { margin: 0; background: #eef1f5; }
+.workbench { min-height: 100vh; }
+.brand { padding: 24px 20px; color: #111827; font-size: 20px; font-weight: 700; }
+.brand span { display: block; margin-top: 8px; color: #4b5563; font-size: 13px; font-weight: 400; }
+.header { background: #fff; padding: 0 24px; border-bottom: 1px solid #cbd5e1; }
+.content { margin: 24px; padding: 24px; background: #fff; border-radius: 6px; min-width: 0; }
+.session-panel { max-width: 680px; margin: 80px auto; padding: 24px; }
+.loading-space { min-height: 120px; }
+:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 3px; }
+@media (max-width: 800px) { .workbench > .ant-layout-sider { display: none; } .content { margin: 12px; padding: 16px; } }
+
+.header > .ant-flex { height: 100%; }
+.scope-tag { color: #fff; background: #374151; border-color: #374151; }

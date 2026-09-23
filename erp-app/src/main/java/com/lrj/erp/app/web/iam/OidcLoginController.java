@@ -16,6 +16,10 @@ public class OidcLoginController {
     @GetMapping({"/login", "/auth/callback"})
     public String login() { return "forward:/auth/login.html"; }
 
+    /** 工作台只转发静态壳层，所有业务请求仍经过独立的认证授权。 */
+    @GetMapping("/workbench/")
+    public String workbench() { return "forward:/workbench/index.html"; }
+
     /** 回调来自受控配置，不接受 Host、query 或门户传入的 client/issuer 覆盖。 */
     @GetMapping("/auth/config")
     public ResponseEntity<LoginConfiguration> config() {

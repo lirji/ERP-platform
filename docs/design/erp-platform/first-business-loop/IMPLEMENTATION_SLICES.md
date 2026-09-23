@@ -1,7 +1,7 @@
 # 首批采购业务闭环实施切片
 
-Owner：implementation-slicing。计划ID：FBL，revision 2（React选型同步，原ID/依赖不变），2026-09-23。
-输入：[范围/门禁](BRIEF.md)、[前端](FRONTEND_ARCHITECTURE.md)、[后端增量](BACKEND_DELTA.md)、[HTTP契约草案](HTTP_CONTRACTS.md)。
+Owner：implementation-slicing。计划ID：FBL，revision 3（用户批准执行，原ID/依赖不变），2026-09-23。
+输入：[范围/门禁](BRIEF.md)、[前端](FRONTEND_ARCHITECTURE.md)、[后端增量](BACKEND_DELTA.md)、[HTTP契约](HTTP_CONTRACTS.md)。
 
 **2026-09-23用户“开始执行吧”批准本方案并授权按切片连续实施。** 用户已批准规划范围、审批规则、React选型及新增契约/权限设计。FBL-D0门禁完成；后续每片仍须实现和独立验证才能DONE。既有阶段结果与ID保留。
 
@@ -14,7 +14,7 @@ Runtime现有Java/PostgreSQL/OIDC始终复用；表中“无新增”不表示�
 | ID | 可观察结果 | Needs | Owner及影响路径 | 契约/迁移Owner | 验收 | Pass / Runtime | 状态 |
 |---|---|---|---|---|---|---|---|
 | FBL-D0 | 新增设计与契约冻结，明确可实施版本 | — | public-engineering-workflow；本目录 | 本批契约；无迁移 | 用户确认或既有有效授权明确覆盖新增规则；文档一致性检查通过 | design review；无运行变化 | DONE（用户开始执行授权） |
-| FBL-S0 | 已绑定管理员进入工作台，查看真实角色列表 | D0 | frontend/backend/runtime；erp-web、erp-app/web/iam、erp-iam查询 | 既有GET /iam/roles；无schema变更 | OIDC登录/刷新/退出、真实角色列表、401/403、键盘可达；旧/me与/roles响应不变 | 实现→类型/构建/HTTP/浏览器验证；React/TS/Vite/Ant Design静态资产随JVM构建 | IN_PROGRESS |
+| FBL-S0 | 已绑定管理员进入工作台，查看真实角色列表 | D0 | frontend/backend/runtime；erp-web、erp-app/web/iam、erp-iam查询 | 既有GET /iam/roles；无schema变更 | OIDC登录/刷新/退出、真实角色列表、401/403、键盘可达；旧/me与/roles响应不变 | 实现→类型/构建/HTTP/浏览器验证；React/TS/Vite/Ant Design静态资产随JVM构建 | DONE |
 | FBL-S1 | 安全管理员创建普通角色并分配功能权限 | S0 | iam/backend/frontend；erp-iam、erp-kernel命令登记、erp-app、erp-web/features/iam | C-IAM Role/role-directory；IAM版本/保护与kernel命令迁移 | 同key只建一个角色；并发修改409；普通用户/保护角色修改拒绝；已有管理员受控初始化验证；管理SQL归持久化层 | 实现→真实DB/HTTP/页面；无新增中间件 | TODO |
 | FBL-S2A | 管理员配置指定组织/公司范围，角色详情准确回显 | S1 | iam+kernel上下文+IAM页面 | C-IAM RoleScope；IAM范围明细迁移 | 多角色集合无降级；同权限OR；异权限不交叉扩大；空集合拒绝 | 实现→SQL断言/负向角色矩阵；无新增 | TODO |
 | FBL-S2B | 管理员把普通角色分配给已有用户并看到权限生效 | S2A | iam/backend/frontend | C-IAM users；用户授权版本/修订机制 | 角色更改后下一次请求可观察；受保护绑定拒绝；并发授权/命令顺序可解释 | 实现→真实身份/事务竞争/页面；无新增 | TODO |
@@ -34,30 +34,20 @@ Runtime现有Java/PostgreSQL/OIDC始终复用；表中“无新增”不表示�
 | FBL-S14 | 财务查询员查看由收货产生的应付 | S13 | finance端口/采购来源状态/app/web | C-AP+C-RCV projection | 正常生成、PENDING、DEAD后FAILED、恢复后AVAILABLE；重复事件仅一AP；财务权限独立 | 实现→Outbox故障恢复/HTTP/页面；无新增 | TODO |
 | FBL-S15 | 首批完整业务链与可重复本地交付通过验收 | S14 | implementation-validation / runtime / docs / CI | 本批全部；只补必要测试/运行文档 | 真实OIDC多角色完整链、跨租户公司仓库矩阵、种子可重复清理、前端构建、Maven回归及镜像smoke；证据绑定提交 | 独立验证→文档→进度→Git/CI；不生产部署 | TODO |
 
-S0至S15各实施行初始均为TODO（仅依赖未满足，不是实现成功）；D0未解除时任何一片不得标READY。S2/S7/S10拆成子片是为了限制单次pass规模，保留组号稳定，不在后续重排旧ID。若实际diff超出一个可审查逻辑单元，应在原ID下继续拆分并记录替代关系。
-
-## 第一条可执行路径
-
-当前可进行设计确认/契约冻结，不存在产品实现READY片。D0通过后下一片为S0（角色查询工作台及必要构建集成），S1–S2B组成“管理员配置角色并验证权限”的首个完整业务里程碑。不是先建设所有后端再集中做UI。
-
-契约冻结要求：将HTTP_CONTRACTS从APPROVED变为受确认版本；检查错误码未冲突；确认角色动作范围/仓库聚合策略和受保护管理员边界。审批角色池/禁止自审已有用户明确决定，不重复询问。
+各片只有实现和验证完成才能DONE；S2/S7/S10子片保持稳定ID。D0已经批准，当前执行S0，然后S1–S2B形成管理员授权闭环。若单片差异过大，在原ID下拆分并记录依赖，不重新规划全部任务。
 
 ## 验证与交付责任
 
 每片backend-implementation→frontend-implementation（按实际范围）→implementation-validation；S0运行集成调用runtime-and-deploy。验证需检查真实可观察结果，不仅验证文件存在或fixture服务调用成功。测试数据写隔离数据库，禁止硬编码页面数据。
 
-每片完成后project-documentation同步本批权威文档、update-progress-docs推进状态。开发任务按用户持续授权独立分支、按完整逻辑提交，必要验证通过后正常合并推送main；task-git-delivery/ci-cd-gate负责证据，失败不绕过保护。当前IMPLEMENTATION_AUTHORIZED不commit/push，不创建发布或生产部署。
+每片完成后project-documentation同步本批权威文档、update-progress-docs推进状态。开发任务按用户持续授权独立分支、按完整逻辑提交，必要验证通过后正常合并推送main；task-git-delivery/ci-cd-gate负责证据，失败不绕过保护。当前IMPLEMENTATION_AUTHORIZED，用户持续授权正常提交/合并/推送main；不创建release或生产部署。
 
 ## 门禁、阻塞及延后
 
-- D0：新增设计待确认；不是环境故障。
+- D0：已获用户批准，无待确认设计门禁。
 - S0：React/react-dom、Ant Design、React Router、Vite及React插件/Node版本须实际锁定及验证，不预先宣称兼容构建通过。
 - S8：初始化公司/管理员/本位币/编号可用性需在授权隔离环境验证；没有现成值明确报错，不能猜本位币。
 - 生产域名/客户端/恢复演练/告警送达由后续运行准入任务处理，不阻塞本地采购闭环。
 - 采购申请、预占过期、销售/客户、付款核销、附件与高级工作流不随本表自动进入实现。
 
-SKILL_HANDOFF：protocol=skill-contract/v1；status=PARTIAL（候选计划完整，正式切片门禁未过）；gate=HOLD；produced=本候选计划；unresolved=新增设计/契约确认；recommended_next=public-engineering-workflow设计冻结。本轮未执行产品代码、迁移、Maven、浏览器或部署验证。
-
-## 执行授权与当前状态（取代上文规划期门禁说明）
-
-2026-09-23用户已授权开始执行，D0=DONE、S0=IN_PROGRESS，其余TODO。规划期HOLD/候选描述仅为历史，不构成重复审批要求。当前推荐下一动作：执行S0并验证，更新进度后继续S1。
+SKILL_HANDOFF：protocol=skill-contract/v1；status=COMPLETED（正式实施计划）；gate=PASS；produced=本计划；unresolved=无设计门禁；recommended_next=S0验收后S1。执行进度见PROGRESS_STATE与每片TEST_RESULT。

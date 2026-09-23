@@ -50,6 +50,7 @@
     status.textContent = '登录成功，ERP 身份与权限已验证。';
     identity.textContent = JSON.stringify(me, null, 2);
     identity.hidden = false; logout.hidden = false; login.hidden = true;
+    document.getElementById('workbench').hidden = false;
   } catch (error) {
     status.textContent = error.message || '登录失败，请重试。';
     login.disabled = !login.onclick;

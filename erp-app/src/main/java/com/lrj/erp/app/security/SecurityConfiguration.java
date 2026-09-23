@@ -47,6 +47,7 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info",
                     "/actuator/metrics", "/actuator/metrics/**", "/login", "/auth/callback",
+                    "/workbench/", "/workbench/index.html", "/workbench/assets/**",
                     "/auth/config", "/auth/login.html", "/auth/login.js", "/auth/login.css",
                     "/webjars/oidc-client-ts/3.2.1/dist/browser/oidc-client-ts.min.js").permitAll()
                 .anyRequest().access((authentication, context) ->

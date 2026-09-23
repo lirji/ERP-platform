@@ -1,0 +1,70 @@
+{
+  "slice": "FBL-S0",
+  "status": "PASS",
+  "date": "2026-09-23",
+  "baseCommit": "3dbbd862230857c48a39fa0af843db0f8766d944",
+  "sourceSha256": {
+    ".dockerignore": "50cf51857840a6bba53c36cca352b99246b032ba07eb8c0a2a6d9afaf9af69a4",
+    ".github/workflows/erp-ci.yml": "10853dabb1bab1765123dd313ea6316a76d798f98946a57654c844ab12ce963e",
+    ".gitignore": "fc6822a05f5a30a67d16bb7b151d1603b7dd8dad4dae260794aaf81b75648658",
+    "deploy/Dockerfile": "f8c91f51a3d79c631a5a80cd88e61df891ac5b885cbdec28f6ed6d131e3bdb6f",
+    "erp-app/pom.xml": "dc59dbfaa0f00729c466bba3ca75d486f42eb2cefb4e9229fb3915d62c3805ef",
+    "erp-app/src/main/java/com/lrj/erp/app/security/SecurityConfiguration.java": "0d2a857aba69a9384497c3b6457771aeddf47b34d83fe6b7652cb9fc1f4e5091",
+    "erp-app/src/main/java/com/lrj/erp/app/web/iam/OidcLoginController.java": "079c3ed005cb2c13faeec4d4bbc1369c360a1c2df1efa8cce7d430b86e3c248a",
+    "erp-app/src/main/resources/static/auth/login.html": "44ab3485eb8b0b2ab0a95afd99f1a4f4e7074f9b54a7a2306b1590c9f18d5482",
+    "erp-app/src/main/resources/static/auth/login.js": "c33cf4bd247ca5621d2a425c240a4fdda63715ec1ea0571582d33a345309e19a",
+    "erp-app/src/test/java/com/lrj/erp/it/SecurityDefaultIT.java": "f491774d3259dd94baecc28b3e010cf26774c65543d837fbf5a2f8339d96e7c9",
+    "erp-web/eslint.config.js": "488649bdcc4d1d40620c87c36dfd81484f2eb4b1e626965f08b158bcd2288318",
+    "erp-web/index.html": "5264b1c6a5163618b6cae90bb7095944e86fc1938e2fef06cf9d5a9856545fac",
+    "erp-web/package-lock.json": "867332838a099385ec48614a6607a1e1beedaf7a354f140508aa3048045a4107",
+    "erp-web/package.json": "7e8de880a162389b30d09066b1a3cbfcb47f2b9f572e9a00c7387f2e649d156c",
+    "erp-web/src/api/client.ts": "ecf925b74341da9f3b546fe3ebe439c3fa717cdd43547d36a002c69c209e8383",
+    "erp-web/src/app/App.tsx": "175da24a73d1759a90aa2922ca7b69e9eb7c0977d3323722f4d705625b0aad58",
+    "erp-web/src/auth/session.ts": "66c1038788e2d6dcac05b874dc7fa2bea51c7f013c822e68aa9f0e1fcac76e9e",
+    "erp-web/src/features/iam/RolesPage.tsx": "725005e38f7002dcc362904c8bbbeac16da226abfb05a69c21506bdeb1cdac1a",
+    "erp-web/src/main.tsx": "3dd11f084a88a722b67e28425a1bca05713f945e596e46de9f21c18fd81ef775",
+    "erp-web/src/style.css": "d635f3d8beef9f176c5bdd28c8467a330ce07087d1a34654079abf9e19c922fc",
+    "erp-web/tests/client.test.ts": "4fade487a75e98ec4277ff92f65b92b778c5acd4aca4028db2027f2b161777ec",
+    "erp-web/tests/roles.test.tsx": "6b592ba42bcf4c8d19d25f46fe8203550d55fbb700dd01fac12d296a90dbfe7e",
+    "erp-web/tests/setup.ts": "5b65975e1ca4e3cfa1e855cde3bf881efb01a95511acb0c9bcd7a38a25364158",
+    "erp-web/tsconfig.json": "5bad99af9f7198989d197e20495a16cc89458b9ef1bd52500b99e8676714d825",
+    "erp-web/vite.config.ts": "c053d3fc0f0d760933b57ec975efca34b1615fedf8c90954f4dca8a0511d1b54",
+    "scripts/workbench-browser-smoke.cjs": "2dd2573659ad5367fefc15841bf8e46f8fbcfbd969c7cb026a3dd587c13a47f0"
+  },
+  "checks": {
+    "frontend": {
+      "lint": "PASS",
+      "typecheck": "PASS",
+      "tests": 8,
+      "build": "PASS",
+      "auditVulnerabilities": 0
+    },
+    "maven": {
+      "command": "mvn -q clean verify",
+      "tests": 180,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "docker": {
+      "build": "PASS",
+      "health": "UP",
+      "image": "sha256:cec2cc954acf0a29f68f325cf9d51fb6cea0f98425e5e217946c5d0663b20e5d"
+    },
+    "browser": {
+      "pkce": "PASS",
+      "sharedSession": "PASS",
+      "rolesApi": 200,
+      "expiredTokenRefresh": "PASS",
+      "keyboardRefresh": "PASS",
+      "logout": "PASS",
+      "noSession": "PASS"
+    }
+  },
+  "limitations": [
+    "S0仅角色只读；S1及后续尚未实现",
+    "Vite主包大小警告仍存在，未测量端到端性能预算",
+    "生产部署不在本次授权范围"
+  ],
+  "revisionFence": "最终样式修改后重新frontend tests/build及Docker build、镜像真实OIDC浏览器验证；后端180项验证后无后端源变更"
+}

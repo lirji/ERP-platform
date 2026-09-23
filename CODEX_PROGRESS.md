@@ -2,51 +2,42 @@
 
 ## 任务目标
 
-将当前ERP能力缺口转为首批可审查交付方案：登录、角色授权、采购必需主数据、采购下单、角色待办审批、分批收货、库存与应付查询。用户已授权开始执行，按首批切片连续开发、验证与Git交付；不执行生产部署。
+按已批准FBL方案连续交付React采购工作台：权限→主数据→采购→角色待办审批→收货→库存/应付。生产OIDC由auth项目负责；本任务不部署生产。
 
 ## 已完成
 
-- 已完成能力探索（`.engineering/exploration/`）；读取既有选型、契约和采购/IAM/主数据/财务源码，按用户确认改为React/TypeScript/Vite/Ant Design，原后端继续复用。
-- 用户确认：按角色形成采购待办池，由有权限且非提交人的审批员处理；前端选用React。选型、路由/状态、组件主题及切片已同步。
-- 四类核心方案已落盘：范围BRIEF、FRONTEND_ARCHITECTURE、HTTP_CONTRACTS、候选IMPLEMENTATION_SLICES；附BACKEND_DELTA。
-- 明确HTTP重试幂等、审批绑定/驳回重提、范围过滤及应付异步状态；未把这些目标写成已有实现。
-- 本地文档链接、表格、19个候选切片依赖及git diff --check通过；本轮不引用历史179项测试为新验收。
+- D0已批准；React、角色池审批且禁止自审为已确认决定，无需重复确认。
+- S0 React工作台、真实角色查询、既有OIDC共享会话与刷新/退出、Maven/Docker/CI前端构建已实现。
+- 前端8项行为测试通过；Maven全量180项通过；npm audit无已知漏洞。
+- 真实Casdoor登录、令牌刷新、键盘刷新角色、退出验证通过；最终镜像复验通过。
 
 ## 已修改文件
 
-- `docs/design/erp-platform/TECH_SELECTION.md`
-
-- `docs/design/erp-platform/first-business-loop/BRIEF.md`
-- `docs/design/erp-platform/first-business-loop/FRONTEND_ARCHITECTURE.md`
-- `docs/design/erp-platform/first-business-loop/HTTP_CONTRACTS.md`
-- `docs/design/erp-platform/first-business-loop/BACKEND_DELTA.md`
-- `docs/design/erp-platform/first-business-loop/IMPLEMENTATION_SLICES.md`
-- `docs/doc-map.md`
-- `.engineering/PROGRESS_STATE.md`
-- `CODEX_PROGRESS.md`
+- `erp-web/`；`erp-app/pom.xml`及工作台路由、安全资源白名单、登录入口和HTTP测试。
+- `deploy/Dockerfile`、`.github/workflows/erp-ci.yml`、忽略规则及浏览器smoke脚本。
+- FBL设计、工程进度及S0验收/运行文档。
 
 ## 未完成
 
-- FBL-D0已批准并完成；FBL-S0正在实施；S1及后续尚未实现。
-- S0–S15及其子片：尚未实现。确认后先S0角色只读工作台与构建集成，再S1/S2管理员授权闭环。
-- 精确前端依赖、隔离环境管理员/本位币/编号配置，在对应切片执行时核验。
-- 生产环境、销售闭环、采购申请、附件、历史数据回填均未因本轮规划宣称完成。
+- S0 Git/远程CI收尾；S1–S15及子片尚未实现。
+- S1下一步：受保护安全管理员、普通角色维护/功能权限、真实DB幂等/版本控制、React管理表单。
+- 生产HTTPS客户端/回调不在本地闭环验收范围，交由auth项目生成。
 
 ## 当前问题
 
-- 无本轮产品代码改动。开工时跟踪文件干净，未跟踪的能力探索报告保留。
-- OIDC已完成本地和Git交付，不重复创建客户端；生产OIDC由auth项目负责生成客户端/回调。
-- 首批客户管理移至销售批次；组织与身份生命周期首批只复用已有用户/组织，不扩张为完整HR/IAM项目。
+- 无实施阻塞；分支`feat/fbl-business-workbench`，设计提交`3dbbd86`。
+- 8500现有容器未替换；18500为本次临时S0验证容器，后台任务关闭。
+- 精确依赖见package-lock；Node仅构建使用。Vite主包仍有体积提示，未承诺性能预算。
 
 ## 下一步建议
 
-1. 阅读本批BRIEF与HTTP契约，确认新增设计后冻结FBL-D0。
-2. 冻结后按候选切片更新READY，依次执行实现→独立验证→文档→进度；不要把所有前端留到最后。
-3. 开发任务按持续Git授权交付；本轮按持续授权分逻辑提交、正常合并推送；不自动生产部署。
+1. 完成S0镜像复验、验收落盘和按授权Git交付。
+2. 继续S1→S2A→S2B及后续切片，每片实现/验证/同步进度，不等待“继续”。
+3. 保留既有数据库与凭据文件；不输出secret，不强推，不部署生产。
 
 ## 恢复 Prompt
 
-请读取CODEX_PROGRESS.md及docs/design/erp-platform/first-business-loop/BRIEF.md、HTTP_CONTRACTS.md、IMPLEMENTATION_SLICES.md。恢复首批采购业务闭环方案，保留既有OIDC成果及数据库；角色待办池且禁止自审、React选型均已获用户确认，不重复询问。新增设计冻结后从FBL-S0进入开发；用户已授权执行，无需再问设计批准；每片验证后更新进度并继续下一片。
+读取本文件、.engineering/PROGRESS_STATE.md及docs/design/erp-platform/first-business-loop/IMPLEMENTATION_SLICES.md和HTTP_CONTRACTS.md，从未完成片继续。设计、React与审批规则均已获批准；连续执行，每片测试和Git交付后自动进入下一片。
 
 <details>
 <summary>前任务OIDC历史交接（仅历史证据，不是本轮待办）</summary>
