@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 由已验证的身份（租户编码 + 用户名）装配 {@link AccessContext}。
+ * 由已验证的外部身份或显式开发身份装配 {@link AccessContext}。
  *
  * <p><b>边界</b>：本类<b>不做认证</b>。谁是调用者由 auth-platform(Casdoor/OIDC) 判定，
  * 这里只负责把"已知是谁"翻译成"他能做什么、能看哪些数据"。
@@ -25,8 +25,17 @@ public class AccessContextAssembler {
         this.mapper = mapper;
     }
 
+    /** 开发身份入口；生产请求只能调用 assembleOidc。 */
     public AccessContext assemble(String tenantCode, String username, String traceId) {
-        UserAuthMapper.UserAuthRecord u = mapper.findUser(tenantCode, username);
+        return assembleRecord(mapper.findUser(tenantCode, username), traceId);
+    }
+
+    /** 每次请求从数据库重读启用状态与权限，离职禁用不等待令牌过期。 */
+    public AccessContext assembleOidc(String issuer, String owner, String subject, String traceId) {
+        return assembleRecord(mapper.findOidcUser(issuer, owner, subject), traceId);
+    }
+
+    private AccessContext assembleRecord(UserAuthMapper.UserAuthRecord u, String traceId) {
         if (u == null) {
             // 用户不存在与凭证无效返回同一个错误：区分开会变成用户名枚举接口
             throw new DomainException(AuthErrorCode.INVALID_CREDENTIAL);

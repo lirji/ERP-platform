@@ -11,7 +11,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,16 +22,10 @@ import java.io.IOException;
  * <p>排在 {@link TraceIdFilter} 之后：traceId 要先于一切可能失败的组件建立，
  * 否则认证失败这类最需要排障的请求反而没有 traceId。
  *
- * <p><b>当前的身份来源</b>：请求头 {@code X-Tenant-Code} + {@code X-Username}。
- * 这是 P1 的<b>临时</b>身份通道，用于在 OIDC 接入完成前驱动授权链路，
- * 只在 {@code erp.security.dev-headers.enabled=true} 时生效，默认关闭。
- *
- * <p><b>它不是认证</b>：请求头可被任意伪造。生产环境必须由 auth-platform(Casdoor)
- * 校验 OIDC 令牌后再装配上下文——那是 P1 剩余工作，见 PROGRESS_STATE。
- * 这里刻意不写成"看起来像认证"的样子，避免日后被误当成安全边界。
+ * <p>OIDC 路径只读取 Spring Security 已验签的 JWT，通过 issuer/owner/sub 绑定本地身份。
+ * 开发头通道仅供明确启用的本地测试，不能与 OIDC 共存。
  */
 @Component
-@Order(Integer.MIN_VALUE + 10)
 public class AccessContextFilter extends OncePerRequestFilter {
 
     private final AccessContextAssembler assembler;
@@ -52,7 +45,18 @@ public class AccessContextFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
         try {
-            if (devHeadersEnabled) {
+            var authentication = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication();
+            if (authentication instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken token) {
+                var jwt = token.getToken();
+                try {
+                    AccessContextHolder.set(assembler.assembleOidc(jwt.getIssuer().toString(),
+                            jwt.getClaimAsString("owner"), jwt.getSubject(), MDC.get(TraceIdFilter.MDC_TRACE_ID)));
+                } catch (DomainException ex) {
+                    errorWriter.write(response, ex);
+                    return;
+                }
+            } else if (devHeadersEnabled) {
                 String tenantCode = request.getHeader("X-Tenant-Code");
                 String username = request.getHeader("X-Username");
                 if (tenantCode != null && username != null) {

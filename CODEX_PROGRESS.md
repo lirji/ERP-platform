@@ -2,44 +2,42 @@
 
 ## 任务目标
 
-接手 Claude 会话 6ce8fae5-f198-48db-ae23-48bd5dbc80c8。P5/P6 内部服务 MVP 闭环后按用户授权继续 P7–P11；P8 按真实复杂审批需求触发。用户确认退货生成独立红字及待退款，保留原收付款事实。
+P1-OIDC：按 auth-platform 真实对接方案自主完成 ERP OIDC 客户端、回调与本地真实验证。用户已授权两个项目的必要接入操作及正常 Git 交付；未授权生产部署。原 P7–P11 已完成，历史证据见 `.engineering/gates/DELIVERY_RESULT-P7-P11.md`。
 
 ## 已完成
 
-- P5/P6 采购到付款、销售到收款内部服务闭环已验证交付。
-- P7 成本、库存作业、退货/红字/退款完成，146 项回归，main 合并 1720e12。
-- P9 五类可恢复报表快照及规模验证完成，151 项回归，合并 af71858。
-- P10 业务审计、慢查询、对账/积压监控和告警脚本完成，155 项回归，合并 e9e6029。
-- P11 员工生命周期、Compose 应用、真实服务演示工具、CI 完成，158 项全量回归，无失败/错误/跳过；合并 41b6854 已推送 main。
-- 演示重复初始化/验证/清理/重复清理/重建通过；本地健康 UP、监控 OK。CI 镜像构建加应用启动步骤 42 秒。
-- 首次 CI 暴露历史 V2 依赖 V30 的空库问题；新增 B30 累计基线和每次隔离空 schema 的回归，保留历史 SQL 和校验值，未 repair 历史。
-- 任务分支 CI 35681340638、main CI 35681661831 全部 SUCCESS。前者 JUnit artifact 已核对 158 项回归及显式种子验证。后续仅文档回写，不宣称另跑 CI。
-- P8 条件未触发，没有额外建设复杂审批。
+- auth 独立客户端/组织 erp-platform，本地账号与精确回调开通、重复开通通过；凭据仅保存在本机 0600 文件。
+- ERP resource-server 验签、issuer/aud/时效/sub/owner 校验，V121 显式租户绑定及稳定用户 sub 映射，复用本地 RBAC/DataScope。
+- 最小 /login 与 /auth/callback，真实 Casdoor PKCE 登录和绑定身份查询通过；篡改令牌、未绑定身份、错误 state 拒绝。
+- 最终 mvn clean verify：179 项通过，失败/错误/跳过均 0；真实 PostgreSQL、RSA/JWKS、Tomcat 大令牌与密钥轮换已验证。
+- crosswalk 重复执行通过、冲突拒绝；Docker 镜像构建与 8500 应用健康、业务监控通过。
+- 8500 真浏览器 PKCE 登录、refresh 后 API 200、退出、无效回调可重试及未绑定账号拒绝全部通过。
 
 ## 已修改文件
 
-- P7/P9/P10 实现及 Gate 见对应阶段文档和 Git 历史。
-- P11 erp-iam 员工服务/Mapper/V120；员工和迁移回归测试，PermissionEnforcementIT 按租户清理。
-- deploy、.dockerignore、.env.example、test-data、DemoDataSeed、GitHub workflow、B30 新库基线。
-- 契约、切片、TEST_RESULT、GATE、DELIVERY_RESULT-P7-P11 和进度文档。
-- 并行编辑产生的工作区格式修改未纳入本任务提交，保留；交付记录列出当时清单，恢复时重新查看 git diff。
+- erp-app 的安全配置/过滤器、OIDC 登录控制器、静态回调页、依赖、配置和认证测试。
+- erp-iam 的 UserAuthMapper/AccessContextAssembler 与 V121。
+- deploy/compose.yaml、deploy/sql/bind-oidc-identity.sql、.env.example、scripts/oidc-browser-smoke.cjs。
+- 安全架构、P1 契约、选型、docs/security/OIDC.md 与本次计划/验收/交付记录。
+- auth-platform：deploy/erp-platform-provision.py、docs/ERP接入.md、接入指南和进度。
 
 ## 未完成
 
-本轮已授权 P7–P11 实施与正常 Git 交付完成（P8 条件未触发）。以下是历史产品边界，不宣称完成：生产 OIDC 客户端/回调、销售财务 HTTP 入口与前端、历史 v1 财务金额回填。
+- 两个任务分支的提交、正常合并推送，以及 ERP 远程 CI。
+- 生产 HTTPS 域名/回调及生产联调未提供目标，未宣称完成；销售财务 HTTP、完整业务前端、历史 v1 金额回填仍在原产品待办。
 
 ## 当前问题
 
-- 内部服务 MVP 不等同生产/UI 验收，未执行生产部署。
-- 未发现原 Runtime run_id；依据原 ROADMAP 和用户授权执行，未伪造 Runtime Gate。
-- 本地 PostgreSQL erp-pgdata 保留；不得清空共享数据库或卷。演示数据独立租户 990001 / ERP_DEMO_P11。
+- 无实施阻塞。原 ERP 工作区有 13 个用户改动，全部保留且不纳入交付。
+- 实施 worktree：../erp-platform-oidc（feat/erp-oidc-auth）；auth：../auth-platform-erp-oidc（feat/erp-oidc-client）。
+- 真实本地数据保留；仅绑定 ERP_DEMO_P11/demo_operator，不清空数据库卷。
+- 临时隔离 JVM 监听 18500，验收收尾后停止该任务进程；8500 容器作为最终本地入口。
 
 ## 下一步建议
 
-1. 当前交付无需重复实施；先查看 `.engineering/gates/DELIVERY_RESULT-P7-P11.md` 与真实 Git 状态。
-2. 本地使用 deploy/up.sh、test-data/init-test-data.sh、test-data/verify-test-data.sh、deploy/smoke.sh。
-3. 如用户另行要求对外产品化，继续解决生产 OIDC/HTTP/前端边界；历史财务补账另行规划，不猜金额。
+1. TEST_RESULT-P1-OIDC.json 已记录本地最终证据，正常提交两个任务分支。
+2. 完成 ERP 远程 CI、两个仓库正常合并推送 main；更新交付证据。
 
 ## 恢复 Prompt
 
-读取 CODEX_PROGRESS.md 和 DELIVERY_RESULT-P7-P11.md。P5/P6/P7/P9/P10/P11 已验证并正常合并推送，P8 条件未触发。保护本地并行编辑及数据库卷，不重复实施已交付功能；按用户新的明确目标继续。
+读取 CODEX_PROGRESS.md、.engineering/slices/IMPLEMENTATION_SLICES_P1_OIDC.md 及 docs/security/OIDC.md，从未完成步骤继续。保护原 13 个用户修改及数据库卷，检查真实测试/分支/进程状态，不重新开户或按用户名认领外部身份，不打印凭据。

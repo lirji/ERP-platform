@@ -74,6 +74,15 @@ ERP **不自建认证**，对接 `auth-platform`（Casdoor / OIDC）。ERP 只�
 
 ---
 
+### 2.1 已落地 OIDC 边界（P1-OIDC）
+
+- `GET /login` 与 `GET /auth/callback` 为匿名登录/回调页面。
+- `GET /auth/config` 匿名返回 `{enabled, issuer, clientId, publicBaseUrl}`，不含 secret，响应 no-store。
+- 业务接口使用 `Authorization: Bearer <access_token>`；受信任令牌按 `iss + owner + sub` 查询本地显式绑定，禁止用户名回退、请求头覆盖与自动开户。
+- 缺令牌为 ERP-AUTH-0001/401；无效令牌或未绑定身份为 ERP-AUTH-0002/401；停用租户/用户为既有 ERP-AUTH-4003/4004，HTTP 403；无权限仍为 ERP-AUTH-4001/403。
+- OIDC 与开发头身份配置互斥，缺安全配置不就绪；关闭 OIDC 不开放业务接口。
+- `/iam/me` 保持当前已实现响应，不在本切片添加历史示例中的展示字段或业务 UI。
+
 ## 3. 组织与用户（CAP-P01、P02）
 
 | 方法 | 路径 | 权限点 | 说明 |

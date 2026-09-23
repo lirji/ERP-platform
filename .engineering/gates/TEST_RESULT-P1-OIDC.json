@@ -1,0 +1,287 @@
+{
+  "slice": "P1-OIDC",
+  "date": "2026-09-23",
+  "scope": "local Casdoor + ERP, no production deployment",
+  "command": "mvn -q clean verify",
+  "exitCode": 0,
+  "totals": {
+    "tests": 179,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "name": "com.lrj.erp.it.AuditTrailIT",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.EmployeeLifecycleIT",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.OidcAuthenticationIT",
+      "tests": 20,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.OutboxLatencyIT",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.DataScopePushdownIT",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.NumberGeneratorConcurrencyIT",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.StockOperationIT",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.FinanceSettlementE2EIT",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.InventoryCostIT",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.DocumentStateConcurrencyIT",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.PermissionEnforcementIT",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.MasterDataRulesIT",
+      "tests": 13,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.ObservabilityIT",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.CreditAdjustmentIT",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.SecurityDefaultIT",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.OrderToShipE2EIT",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.ReturnE2EIT",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.InventoryInvariantsIT",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.OutboxRetryAndDlqIT",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.FreshSchemaMigrationIT",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.ReportSnapshotIT",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.it.ProcureToReceiveE2EIT",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.CodingConventionArchitectureTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.MigrationCommentConventionTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.app.observability.TraceIdFilterTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.ArchRuleEnforcementNegativeTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.ModuleDependencyArchitectureTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.TableOwnershipArchitectureTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.ModuleDependencyMatrixTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.architecture.AvailableIsDerivedTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.lrj.erp.kernel.statemachine.StateMachineTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "browser": {
+    "base": "http://localhost:8500",
+    "command": "ERP_SMOKE_BASE=http://localhost:8500 node scripts/oidc-browser-smoke.cjs",
+    "results": {
+      "pkce": "PASS",
+      "boundLogin": "PASS",
+      "tenantIsolation": "PASS",
+      "valid": 200,
+      "missing": 401,
+      "tampered": 401,
+      "unbound": "REJECTED",
+      "localLogout": "PASS",
+      "invalidState": "REJECTED",
+      "refreshToken": true,
+      "renewed": 200
+    }
+  },
+  "localRuntime": {
+    "dockerBuild": "PASS",
+    "dockerAppHealth": "UP",
+    "businessHealth": "OK",
+    "databaseMigration": 121
+  },
+  "provision": {
+    "create": "PASS",
+    "repeat": "PASS",
+    "explicitIdentityBind": "PASS",
+    "repeatBind": "PASS",
+    "conflictingBind": "REJECTED"
+  },
+  "sourceSha256": {
+    ".env.example": "448170ddfdb22dbfe85cb2c1f93276d93478149368f95c0b39225d863fcc0816",
+    "deploy/compose.yaml": "7c84faf73cece10b920cbc10c19c0591236570ee983c1264c38d9d3c02edd2b3",
+    "deploy/sql/bind-oidc-identity.sql": "7e30798bc01766e18e8ddcc8dedb3ee3a1aec89fb06bc72180f1758b3ecad6ec",
+    "erp-app/pom.xml": "75c35b1fa95842523953be76e5d09f211e0e067ecdf923a464a143d2bb0a174f",
+    "erp-app/src/main/java/com/lrj/erp/app/security/AccessContextFilter.java": "e115a01a97340144ed0d6f5ba0ac89db7449221812f68573f9fea092b27f5547",
+    "erp-app/src/main/java/com/lrj/erp/app/security/OidcProperties.java": "385522a4555c4c547b6b5a185e9da39e0422e37618c1bab3224f8513f10f6f87",
+    "erp-app/src/main/java/com/lrj/erp/app/security/OidcTokenValidator.java": "b18a82fee933f7e045d8b101899b14739d5da60e08b8d24166b073fe2041a3e4",
+    "erp-app/src/main/java/com/lrj/erp/app/security/SecurityConfiguration.java": "32cebdbaecafd473d000190cef5f82dfb9c0447d9cd93b5dc8a01c40736e2fbc",
+    "erp-app/src/main/java/com/lrj/erp/app/web/iam/OidcLoginController.java": "405a28f2b9646e411f7e23c49fbecd50d1f2629e2ffdea82bb7b3693d77bd2bb",
+    "erp-app/src/main/resources/application.yml": "b6dc2a095640b833ab8be9d9a63785103d903927abfba60a7b960f772b928542",
+    "erp-app/src/main/resources/static/auth/login.css": "8384438e9e9f890385a2e9cf7f063fa09999ca44b40ceb4f76c10239fec0592b",
+    "erp-app/src/main/resources/static/auth/login.html": "68a4e4edbd30d7680bc9dd7af11b50c13f4265f4456a8813bf5f856bf0f4a40d",
+    "erp-app/src/main/resources/static/auth/login.js": "c0a22ef1eaa12f051ff00fdf1bfc81ab9ffe7403a49e864495d46e076b711387",
+    "erp-app/src/test/java/com/lrj/erp/it/OidcAuthenticationIT.java": "d7353c68214d9932f932318198c7474867f85c2c201ba2d85d76ff9a7c426a82",
+    "erp-app/src/test/java/com/lrj/erp/it/SecurityDefaultIT.java": "b503035a06d284aecd23df5be69f3fbd0fce6a1cedf68a5297984dd6c454bcd1",
+    "erp-iam/src/main/java/com/lrj/erp/iam/repository/UserAuthMapper.java": "81b4467e77575eedd38ab101d846d0a6fe3f10d83bc5a915de6e3abcee471767",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/AccessContextAssembler.java": "680c977f5f80f861bab25f2e0416effde978e12004946ebd158a96a8713e6ae3",
+    "erp-iam/src/main/resources/db/migration/V121__oidc_tenant_binding.sql": "35ad8f787d5d5dd5624b60cedf9716f3d299bfa80673bf9c90d8d063ce1eb8e0",
+    "erp-iam/src/main/resources/mapper/UserAuthMapper.xml": "1ca2459f38f2cfee390fc78126b1612c9abca8cd004916349ce48762ffeee12f",
+    "scripts/oidc-browser-smoke.cjs": "8f282f2918c82afed59bbcb52e56151de81148e9ad24968951bc1460a7aa8305"
+  },
+  "ci": {
+    "status": "PENDING"
+  }
+}

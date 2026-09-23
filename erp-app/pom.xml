@@ -46,6 +46,19 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- 复用 Spring Security 验签与 auth-platform 同款浏览器 OIDC 库，不自建协议实现。 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.webjars.npm</groupId>
+      <artifactId>oidc-client-ts</artifactId>
+      <version>3.2.1</version>
+      <!-- 浏览器产物已内联 jwt-decode，排除 WebJar 的动态版本范围。 -->
+      <exclusions><exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion></exclusions>
+    </dependency>
+
     <!-- Flyway：迁移脚本汇总执行。每模块脚本放在各自 db/migration 下，由 classpath 合并 -->
     <dependency>
       <groupId>org.flywaydb</groupId>

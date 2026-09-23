@@ -2,6 +2,7 @@
 # 技术配置走 env（随部署走），业务参数（超收比例、负库存策略等）走数据库表 CAP-P11——
 # 两类配置职责不同，同一配置键不得有两个权威来源（TECH_SELECTION「配置」行，否决 Nacos）。
 server:
+  max-http-request-header-size: 64KB
   port: ${ERP_APP_PORT:8500}
   address: ${ERP_APP_BIND:127.0.0.1}
 
@@ -61,3 +62,13 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [traceId=%X{traceId:-}] %logger{36} - %msg%n"
   level:
     com.lrj.erp: ${ERP_LOG_LEVEL:INFO}
+
+# auth-platform 身份接入；未配置时业务接口 fail-closed，探活仍可用。
+erp:
+  security:
+    oidc:
+      enabled: ${ERP_OIDC_ENABLED:false}
+      issuer: ${ERP_OIDC_ISSUER:}
+      jwk-set-uri: ${ERP_OIDC_JWKS:}
+      client-id: ${ERP_OIDC_CLIENT_ID:}
+      public-base-url: ${ERP_PUBLIC_BASE_URL:}
