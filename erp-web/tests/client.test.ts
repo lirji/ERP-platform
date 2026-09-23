@@ -38,3 +38,11 @@ describe('authenticated GET boundary', () => {
     }
   });
 });
+it('retains the same idempotency key and payload across token refresh', async () => {
+  const auth = session(); const transport = vi.fn().mockResolvedValueOnce(new Response('{}', { status: 401 })).mockResolvedValueOnce(new Response('{"id":"123"}', { status: 201 }));
+  const api = createApiClient(auth, transport);
+  await expect(api.command('/api/v1/iam/roles', 'POST', { code: 'BUYER', name: '采购员' }, 'operation-key')).resolves.toEqual({ id: '123' });
+  for (const call of transport.mock.calls) {
+    expect(call[1].headers['Idempotency-Key']).toBe('operation-key'); expect(call[1].body).toBe('{"code":"BUYER","name":"采购员"}');
+  }
+});

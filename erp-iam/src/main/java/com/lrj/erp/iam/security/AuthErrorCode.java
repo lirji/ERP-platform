@@ -5,6 +5,7 @@ import com.lrj.erp.kernel.error.ErrorCode;
 /** 认证与授权错误码（ERP-AUTH-*）。与 contracts/ERROR_CODES.md 的 AUTH 段一一对应。 */
 public enum AuthErrorCode implements ErrorCode {
 
+    PROTECTED_GRANT    ("ERP-IAM-4010", "受保护的管理员授权不可修改", 403),
     NO_CREDENTIAL      ("ERP-AUTH-0001", "请先登录",               401),
     INVALID_CREDENTIAL ("ERP-AUTH-0002", "登录已失效，请重新登录",   401),
     PERMISSION_DENIED  ("ERP-AUTH-4001", "没有该操作的权限",         403),

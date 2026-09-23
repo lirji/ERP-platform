@@ -5,27 +5,22 @@ import com.lrj.erp.kernel.context.AccessContext;
 import com.lrj.erp.kernel.context.AccessContextHolder;
 import com.lrj.erp.iam.security.AuthErrorCode;
 import com.lrj.erp.kernel.error.DomainException;
-import org.springframework.jdbc.core.JdbcTemplate;
+import com.lrj.erp.iam.service.RoleManagementService;
+import com.lrj.erp.iam.service.RoleModels.LegacyRole;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
-/**
- * IAM 对外接口。契约见 contracts/API_P1_PLATFORM_KERNEL.md §2、§4。
- *
- * <p>Controller 只处理协议与参数；<b>不直接依赖 Mapper</b>（禁止事项第 4 条，
- * 由 CodingConventionArchitectureTest 强制）。这里用 JdbcTemplate 做只读投影查询，
- * 它不是 Mapper，也不承载业务规则。
- */
+/** 旧IAM协议适配；角色SQL由IAM持久化层拥有，保持历史响应字段。 */
 @RestController
 @RequestMapping("/api/v1/iam")
 public class IamController {
 
-    private final JdbcTemplate jdbc;
+    private final RoleManagementService roles;
 
-    public IamController(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
+    public IamController(RoleManagementService roles) {
+        this.roles = roles;
     }
 
     /** 当前身份与权限；前端据此置灰按钮（但置灰不是安全边界）。 */
@@ -46,10 +41,5 @@ public class IamController {
     /** 角色列表。需要 {@code iam:role:read}——缺权限时由拦截器拒为 403。 */
     @GetMapping("/roles")
     @RequiresPermission("iam:role:read")
-    public List<Map<String, Object>> roles() {
-        long tenantId = AccessContextHolder.require().tenantId();
-        return jdbc.queryForList(
-                "SELECT id, code, name, data_scope_type FROM iam_role WHERE tenant_id = ? ORDER BY id",
-                tenantId);
-    }
+    public List<LegacyRole> roles() { return roles.legacy(); }
 }

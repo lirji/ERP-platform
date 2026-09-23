@@ -41,7 +41,7 @@ const base = process.env.ERP_SMOKE_BASE || 'http://localhost:18500';
     assert(refreshed);
     const refresh = page.getByRole('button', { name: '刷新角色', exact: true });
     await refresh.focus();
-    const reply = page.waitForResponse(r => r.url() === base + '/api/v1/iam/roles');
+    const reply = page.waitForResponse(r => r.url().startsWith(base + '/api/v1/iam/role-directory?'));
     await page.keyboard.press('Enter'); assert.equal((await reply).status(), 200);
     await page.screenshot({ path: '/tmp/erp-fbl-s0-workbench.png', fullPage: true });
     await page.getByRole('button', { name: '退出当前 ERP 登录' }).click();

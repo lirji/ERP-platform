@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.kernel.command.HttpCommandMapper">
+ <insert id="claim">INSERT INTO erp_http_command(tenant_id,endpoint,command_key,actor_id,request_hash,http_status)
+ VALUES(#{tenant},#{endpoint},CAST(#{key} AS uuid),#{actor},#{hash},#{status}) ON CONFLICT DO NOTHING</insert>
+ <select id="find" resultType="com.lrj.erp.kernel.command.HttpCommandMapper$Entry">
+ SELECT actor_id,request_hash,response_json,http_status FROM erp_http_command
+ WHERE tenant_id=#{tenant} AND endpoint=#{endpoint} AND command_key=CAST(#{key} AS uuid) FOR UPDATE</select>
+ <update id="finish">UPDATE erp_http_command SET response_json=#{json}
+ WHERE tenant_id=#{tenant} AND endpoint=#{endpoint} AND command_key=CAST(#{key} AS uuid) AND response_json IS NULL</update>
+</mapper>

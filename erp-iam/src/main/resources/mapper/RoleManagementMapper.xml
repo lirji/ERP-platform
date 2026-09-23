@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lrj.erp.iam.repository.RoleManagementMapper">
+ <sql id="columns">id,version,code,name,enabled,protected AS protected_role,data_scope_type AS scope_type</sql>
+ <sql id="filter">tenant_id=#{tenant}<if test="q != null and q != ''"> AND (position(lower(#{q}) in lower(code)) &gt; 0 OR position(lower(#{q}) in lower(name)) &gt; 0)</if></sql>
+ <select id="legacy" resultType="com.lrj.erp.iam.service.RoleModels$LegacyRole">SELECT id,code,name,data_scope_type FROM iam_role WHERE tenant_id=#{tenant} ORDER BY id</select>
+ <select id="list" resultType="com.lrj.erp.iam.repository.RoleManagementMapper$Row">SELECT <include refid="columns"/> FROM iam_role WHERE <include refid="filter"/> ORDER BY
+ <choose><when test="sort == 'code'">code,</when><when test="sort == 'name'">name,</when></choose> id LIMIT #{size} OFFSET #{offset}</select>
+ <select id="grants" resultType="com.lrj.erp.iam.repository.RoleManagementMapper$Grant">SELECT role_id,permission FROM iam_role_permission WHERE tenant_id=#{tenant} AND role_id IN <foreach collection="ids" item="id" open="(" close=")" separator=",">#{id}</foreach> ORDER BY role_id,permission</select>
+ <select id="count" resultType="long">SELECT count(*) FROM iam_role WHERE <include refid="filter"/></select>
+ <select id="find" resultType="com.lrj.erp.iam.repository.RoleManagementMapper$Row">SELECT <include refid="columns"/> FROM iam_role WHERE tenant_id=#{tenant} AND id=#{id}</select>
+ <select id="permissions" resultType="string">SELECT permission FROM iam_role_permission WHERE tenant_id=#{tenant} AND role_id=#{id} ORDER BY permission</select>
+ <select id="lockTenant" resultType="long">SELECT id FROM iam_tenant WHERE id=#{tenant} AND enabled=TRUE FOR UPDATE</select>
+ <select id="isAdmin" resultType="boolean">SELECT EXISTS(SELECT 1 FROM iam_user u JOIN iam_user_role ur ON ur.user_id=u.id AND ur.tenant_id=u.tenant_id JOIN iam_role r ON r.id=ur.role_id AND r.tenant_id=ur.tenant_id JOIN iam_role_permission p ON p.role_id=r.id AND p.tenant_id=r.tenant_id WHERE u.tenant_id=#{tenant} AND u.id=#{user} AND u.enabled AND r.enabled AND r.protected AND p.permission='iam:security:admin')
+ AND EXISTS(SELECT 1 FROM iam_user_role ur JOIN iam_role r ON r.id=ur.role_id AND r.tenant_id=ur.tenant_id JOIN iam_role_permission p ON p.role_id=r.id AND p.tenant_id=r.tenant_id WHERE ur.tenant_id=#{tenant} AND ur.user_id=#{user} AND r.enabled AND p.permission='iam:role:write')</select>
+ <select id="insert" resultType="long" affectData="true">INSERT INTO iam_role(tenant_id,code,name) VALUES(#{tenant},#{code},#{name}) ON CONFLICT(tenant_id,code) DO NOTHING RETURNING id</select>
+ <update id="update">UPDATE iam_role SET name=#{name},enabled=#{enabled},version=version+1 WHERE tenant_id=#{tenant} AND id=#{id} AND version=#{version} AND NOT protected</update>
+ <update id="bump">UPDATE iam_role SET version=version+1 WHERE tenant_id=#{tenant} AND id=#{id} AND version=#{version} AND NOT protected</update>
+ <delete id="clearPermissions">DELETE FROM iam_role_permission WHERE tenant_id=#{tenant} AND role_id=#{id}</delete>
+ <insert id="addPermission">INSERT INTO iam_role_permission(tenant_id,role_id,permission) VALUES(#{tenant},#{id},#{permission})</insert>
+ <insert id="audit">INSERT INTO iam_role_change_audit(tenant_id,role_id,actor_id,action,before_json,after_json,trace_id)
+ VALUES(#{tenant},#{id},#{actor},#{action},CAST(#{before} AS jsonb),CAST(#{after} AS jsonb),#{trace})</insert>
+</mapper>

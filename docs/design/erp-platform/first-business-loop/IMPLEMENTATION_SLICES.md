@@ -15,7 +15,7 @@ Runtime现有Java/PostgreSQL/OIDC始终复用；表中“无新增”不表示�
 |---|---|---|---|---|---|---|---|
 | FBL-D0 | 新增设计与契约冻结，明确可实施版本 | — | public-engineering-workflow；本目录 | 本批契约；无迁移 | 用户确认或既有有效授权明确覆盖新增规则；文档一致性检查通过 | design review；无运行变化 | DONE（用户开始执行授权） |
 | FBL-S0 | 已绑定管理员进入工作台，查看真实角色列表 | D0 | frontend/backend/runtime；erp-web、erp-app/web/iam、erp-iam查询 | 既有GET /iam/roles；无schema变更 | OIDC登录/刷新/退出、真实角色列表、401/403、键盘可达；旧/me与/roles响应不变 | 实现→类型/构建/HTTP/浏览器验证；React/TS/Vite/Ant Design静态资产随JVM构建 | DONE |
-| FBL-S1 | 安全管理员创建普通角色并分配功能权限 | S0 | iam/backend/frontend；erp-iam、erp-kernel命令登记、erp-app、erp-web/features/iam | C-IAM Role/role-directory；IAM版本/保护与kernel命令迁移 | 同key只建一个角色；并发修改409；普通用户/保护角色修改拒绝；已有管理员受控初始化验证；管理SQL归持久化层 | 实现→真实DB/HTTP/页面；无新增中间件 | TODO |
+| FBL-S1 | 安全管理员创建普通角色并分配功能权限 | S0 | iam/backend/frontend；erp-iam、erp-kernel命令登记、erp-app、erp-web/features/iam | C-IAM Role/role-directory；IAM版本/保护与kernel命令迁移 | 同key只建一个角色；并发修改409；普通用户/保护角色修改拒绝；已有管理员受控初始化验证；管理SQL归持久化层 | 实现→真实DB/HTTP/页面；无新增中间件 | DONE |
 | FBL-S2A | 管理员配置指定组织/公司范围，角色详情准确回显 | S1 | iam+kernel上下文+IAM页面 | C-IAM RoleScope；IAM范围明细迁移 | 多角色集合无降级；同权限OR；异权限不交叉扩大；空集合拒绝 | 实现→SQL断言/负向角色矩阵；无新增 | TODO |
 | FBL-S2B | 管理员把普通角色分配给已有用户并看到权限生效 | S2A | iam/backend/frontend | C-IAM users；用户授权版本/修订机制 | 角色更改后下一次请求可观察；受保护绑定拒绝；并发授权/命令顺序可解释 | 实现→真实身份/事务竞争/页面；无新增 | TODO |
 | FBL-S3 | 维护员维护基本单位 | S2B | masterdata/backend/frontend | C-MD unit；md_unit版本迁移 | 新建/改名/启停；重复编码拒绝；受引用关键字段不可改；所有写幂等 | 实现→DB/HTTP/表单；无新增 | TODO |

@@ -1,0 +1,73 @@
+{
+  "slice": "FBL-S1",
+  "status": "PASS",
+  "date": "2026-09-23",
+  "baseCommit": "c6d7ce887e663d086ce78f329e05a4c2d59f2cc5",
+  "sourceSha256": {
+    "erp-app/src/main/java/com/lrj/erp/app/web/iam/IamController.java": "eeacb6f79a8ce0cf40298cb3d61452f5ab549b7f29323bfb1ff4104546617b7f",
+    "erp-iam/src/main/java/com/lrj/erp/iam/security/AuthErrorCode.java": "77551069d0906a8ce04f2cc19244eb50a7de25975d0bbb9a01997a5470b921b7",
+    "erp-web/src/api/client.ts": "40f80806771b45ead119733fdb0a04e03ad7fbb0426138a009f17255776f24fe",
+    "erp-web/src/app/App.tsx": "b31cca1fea48f72e3813cd82a1462e978fa91f4e731d3d12ff1f0ff0b5da8221",
+    "erp-web/src/features/iam/RolesPage.tsx": "1b37420b4bad200b1c8743bb9a7333a3c7759fcd948df991e4446d8a918ba653",
+    "erp-web/tests/client.test.ts": "9d8087039bca2e306fb75d42cf379a51937b2b9110afe1ec1a023721f9f4ce34",
+    "erp-web/tests/roles.test.tsx": "8a1bf0330b5ca1206dddd51f94e7918b3b3cf9cca8eb1872a60070797247260f",
+    "scripts/workbench-browser-smoke.cjs": "116e26bedb729cebdbca28030814697790bf0d12e7caa0388375692455b151f5",
+    "deploy/sql/bootstrap-security-admin.sql": "b0e57111012aa01df2d50a59038e2080498c93df5c06c33c9c5918566e80131b",
+    "erp-app/src/main/java/com/lrj/erp/app/web/iam/RoleManagementController.java": "7030753c83653053f4e5366eb52e7c297f3dbf0160a6bb2d24b4aebed70f637c",
+    "erp-app/src/main/java/com/lrj/erp/app/web/iam/RoleRequestReader.java": "8fbc20c271642306127d895c7f5df9934d14d83059bcff03e6b06273d11af12e",
+    "erp-app/src/test/java/com/lrj/erp/it/RoleManagementIT.java": "d233e5eb2040697cf5817b823feb7167a3ea2bc4e918e61d21d4ed1542c00e65",
+    "erp-iam/src/main/java/com/lrj/erp/iam/repository/RoleManagementMapper.java": "772e6de20243034b58af81d3bc29fa36c776f6caab18c0e35ccd0f9072700bc6",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/PermissionCatalog.java": "cc9a7bdb0419ca2108afcc3ea5a853926735e899d1803db1d2101a3008f794a3",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/RoleManagementService.java": "ab52488a4ba5b4e8268f9b0b12182552bd1415451bda80089ae3748099effec5",
+    "erp-iam/src/main/java/com/lrj/erp/iam/service/RoleModels.java": "dc4b9b8c9afbb41c9c208306f6c607d696d88d000ace14ba5bc6fdcb95ca937a",
+    "erp-iam/src/main/resources/db/migration/V123__role_management.sql": "03f8fd4fbd394492b70938f4516e1b52970701d0b6fdaa8f24bf5613fe91a3a2",
+    "erp-iam/src/main/resources/db/migration/V124__role_change_audit.sql": "b415a8c016acd88d924ed10f1084fef2a2b664d11115f84885c5c2c37fb6b177",
+    "erp-iam/src/main/resources/mapper/RoleManagementMapper.xml": "d119ca959004be53d12aa784490ca1b551ff36b2f443137e2dba24ca2df03fa2",
+    "erp-kernel/src/main/java/com/lrj/erp/kernel/command/CommandErrorCode.java": "681a3f706fd097478ef65eca09e99e73514f71cddf41ba92703965abb547f1fd",
+    "erp-kernel/src/main/java/com/lrj/erp/kernel/command/HttpCommandMapper.java": "34731c2b3d3a998c1d0759a7bf2dc6a3816e595432ec6b98e0b858280fdc48d7",
+    "erp-kernel/src/main/java/com/lrj/erp/kernel/command/HttpCommandService.java": "440036f17639987e90ef8e00996c5f9ebeac3c81c9a04795e5e98030b31b9e3a",
+    "erp-kernel/src/main/resources/db/migration/V122__http_command.sql": "50415cc08b97c5ed4227d8452275f517506c41febec66d1490926950125bbc57",
+    "erp-kernel/src/main/resources/mapper/HttpCommandMapper.xml": "cc1e3da7cf0238f50dcf1154721ac9fd980dbfa5475b26c493324be3af428cb5",
+    "scripts/role-management-browser-smoke.cjs": "0ebdefc1c05e5708bb5243eb0779d957cd100fc7fb42413dc2e60882d86638bc"
+  },
+  "maven": {
+    "command": "mvn -q clean verify",
+    "tests": 185,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "frontend": {
+    "tests": 11,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "build": "PASS"
+  },
+  "runtime": {
+    "jarHealth": "UP",
+    "port": 18500,
+    "productionDeployment": false
+  },
+  "browser": {
+    "pkce": "PASS",
+    "sharedSession": "PASS",
+    "rolesApi": 200,
+    "createLostResponseReplay": "PASS",
+    "permissions": "PASS",
+    "disable": "PASS",
+    "expiredTokenRefresh": "PASS",
+    "keyboardRefresh": "PASS",
+    "logout": "PASS",
+    "noSession": "PASS"
+  },
+  "bootstrap": {
+    "repeat": "PASS",
+    "unboundIdentityDenied": "PASS"
+  },
+  "revisionFence": "最终后端含V124审计后185项通过；之后只修改管理按钮可访问名称、前端测试与smoke脚本，重新前端构建/11项测试/JAR打包及真实浏览器通过。",
+  "unimplemented": [
+    "S2A角色动作数据范围",
+    "S2B用户授权及业务命令授权锁",
+    "S3及后续采购链"
+  ]
+}
