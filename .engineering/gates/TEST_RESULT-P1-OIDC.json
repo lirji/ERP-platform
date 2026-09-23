@@ -282,6 +282,24 @@
     "scripts/oidc-browser-smoke.cjs": "8f282f2918c82afed59bbcb52e56151de81148e9ad24968951bc1460a7aa8305"
   },
   "ci": {
-    "status": "PENDING"
+    "status": "PASS",
+    "runId": 35810514966,
+    "commit": "23347b0b38f6b86029b3f174354b6f78cd50149f",
+    "url": "https://github.com/lirji/ERP-platform/actions/runs/35810514966",
+    "artifactVerified": true,
+    "regressionTotals": {
+      "tests": 179,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "explicitSeedTests": 1
+  },
+  "mainCi": {
+    "status": "PASS",
+    "runId": 35810843126,
+    "commit": "a97339fa67e4b9a3598d1d9bcb2f9883c548f0be",
+    "url": "https://github.com/lirji/ERP-platform/actions/runs/35810843126",
+    "scope": "合并代码版本全部步骤通过；后续仅文档，不宣称重新执行 CI"
   }
 }

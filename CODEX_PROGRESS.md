@@ -12,6 +12,7 @@ P1-OIDC：按 auth-platform 真实对接方案自主完成 ERP OIDC 客户端、
 - 最终 mvn clean verify：179 项通过，失败/错误/跳过均 0；真实 PostgreSQL、RSA/JWKS、Tomcat 大令牌与密钥轮换已验证。
 - crosswalk 重复执行通过、冲突拒绝；Docker 镜像构建与 8500 应用健康、业务监控通过。
 - 8500 真浏览器 PKCE 登录、refresh 后 API 200、退出、无效回调可重试及未绑定账号拒绝全部通过。
+- auth f02ff04 → main c07741a、ERP 23347b0 → main a97339f 已推送；ERP 分支 CI 35810514966 和 main CI 35810843126 均 SUCCESS，源码后的回写仅文档。
 
 ## 已修改文件
 
@@ -23,7 +24,7 @@ P1-OIDC：按 auth-platform 真实对接方案自主完成 ERP OIDC 客户端、
 
 ## 未完成
 
-- 两个任务分支的提交、正常合并推送，以及 ERP 远程 CI。
+本轮 OIDC 接入、验证与正常 Git 交付已完成。
 - 生产 HTTPS 域名/回调及生产联调未提供目标，未宣称完成；销售财务 HTTP、完整业务前端、历史 v1 金额回填仍在原产品待办。
 
 ## 当前问题
@@ -31,13 +32,14 @@ P1-OIDC：按 auth-platform 真实对接方案自主完成 ERP OIDC 客户端、
 - 无实施阻塞。原 ERP 工作区有 13 个用户改动，全部保留且不纳入交付。
 - 实施 worktree：../erp-platform-oidc（feat/erp-oidc-auth）；auth：../auth-platform-erp-oidc（feat/erp-oidc-client）。
 - 真实本地数据保留；仅绑定 ERP_DEMO_P11/demo_operator，不清空数据库卷。
-- 临时隔离 JVM 监听 18500，验收收尾后停止该任务进程；8500 容器作为最终本地入口。
+- 临时隔离 JVM 18500 已停止；8500 容器为最终本地入口。
 
 ## 下一步建议
 
-1. TEST_RESULT-P1-OIDC.json 已记录本地最终证据，正常提交两个任务分支。
-2. 完成 ERP 远程 CI、两个仓库正常合并推送 main；更新交付证据。
+1. 本轮无需重复实施；入口 http://localhost:8500/login，配置和凭据引用见 docs/security/OIDC.md。
+2. 生产环境由实际 HTTPS 域名和部署目标驱动配置/验收；未执行生产部署。
+3. 销售/财务 HTTP、完整业务前端及历史财务补账按新的明确范围继续，不自动扩展本任务。
 
 ## 恢复 Prompt
 
-读取 CODEX_PROGRESS.md、.engineering/slices/IMPLEMENTATION_SLICES_P1_OIDC.md 及 docs/security/OIDC.md，从未完成步骤继续。保护原 13 个用户修改及数据库卷，检查真实测试/分支/进程状态，不重新开户或按用户名认领外部身份，不打印凭据。
+读取 CODEX_PROGRESS.md 与 .engineering/gates/DELIVERY_RESULT-P1-OIDC.md。本轮两仓 OIDC 接入与 main 发布、ERP 远程 CI 已完成，不重复开户或重跑实现；保留原 13 个用户改动和 PostgreSQL 卷。按新需求继续，生产域名/环境尚待实际目标，不打印凭据。
